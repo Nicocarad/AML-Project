@@ -1,4 +1,5 @@
-
+#!/usr/bin/python
+# -*- encoding: utf-8 -*-
 from model.model_stages import BiSeNet
 from cityscapes import CityScapes
 import torch
