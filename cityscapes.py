@@ -145,3 +145,7 @@ class CityScapes(Dataset):
         return len(self.img_file_names_filtered)
 
 
+
+# Da capire:
+# 1. Applicare la normalizzazione o no?
+# 2. Dobbiamo usare le immagini in bianco e nero o quelle a colori
