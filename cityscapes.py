@@ -143,6 +143,7 @@ class CityScapes(Dataset):
 
     def __len__(self):
         return len(self.img_file_names_filtered)
+        
 
 
 
