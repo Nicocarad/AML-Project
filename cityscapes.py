@@ -82,8 +82,8 @@ class CityScapes(Dataset):
         # define two dictionaries that link file names to their full addresses
         
         self.imgs, img_file_names = process_directory(root, mode, 'images', '_leftImg8bit.png')
-        self.labels, fine_file_names = process_directory(root, mode, 'gtFine', '_gtFine_labelTrainIds.png')
-        
+        # self.labels, fine_file_names = process_directory(root, mode, 'gtFine', '_gtFine_labelTrainIds.png')
+        self.labels, fine_file_names = process_directory(root, mode, 'gtFine', '_gtFine_color.png')
         
         ## parse img directory
         
