@@ -27,7 +27,6 @@ def process_directory(root, mode, subfolder, file_suffix):
         img_names = os.listdir(city_path)
         if subfolder == "gtFine":
             img_names = [el for el in img_names if 'labelTrainIds' in el]
-            # img_names = [el for el in img_names if 'color' in el]
         filtered_names = [el.replace(file_suffix, '') for el in img_names]
         img_path_list = [osp.join(city_path, el) for el in img_names]
         file_names.extend(filtered_names)
@@ -54,10 +53,10 @@ def convert_labels(lb_map, label):
             label[label == k] = v
         return label
 
-# # Define transforms for training phase
-# train_transform = transforms.Compose([transforms.Resize(512,1024),      # Resizes short size of the PIL image to 512x1024                                                             
+# Define transforms for training phase
+# train_transform = transforms.Resize(512,1024)      # Resizes short size of the PIL image to 512x1024                                                             
                                       
-# ])
+
 
 to_tensor = transforms.Compose([
             transforms.ToTensor(),
@@ -69,7 +68,6 @@ class CityScapes(Dataset):
         super(CityScapes, self).__init__()
         
         assert mode in ('train', 'val', 'test')
-        
         self.mode = mode
         print('self.mode', self.mode)
         
@@ -78,42 +76,11 @@ class CityScapes(Dataset):
             labels_info = json.load(fr)
         self.lb_map = {el['id']: el['trainId'] for el in labels_info}
         
-        print('self.lb_map', self.lb_map)
-        
         # define two dictionaries that link file names to their full addresses
         
         self.imgs, img_file_names = process_directory(root, mode, 'images', '_leftImg8bit.png')
         self.labels, fine_file_names = process_directory(root, mode, 'gtFine', '_gtFine_labelTrainIds.png')
-        # self.labels, fine_file_names = process_directory(root, mode, 'gtFine', '_gtFine_color.png')
         
-        ## parse img directory
-        
-        # self.imgs = {}
-        # self.img_file_names = []
-        # img_path = osp.join(root, 'images', mode) # cityscapes/images/train
-        # cities_img_folders = os.listdir(img_path)
-        # for city_img_folder  in cities_img_folders:
-        #     city_path = osp.join(img_path, city_img_folder) # cityscapes/images/train/city
-        #     img_names = os.listdir(city_path)
-        #     filtered_names = [el.replace('_leftImg8bit.png', '') for el in img_names]
-        #     img_path_list = [osp.join(city_path, el) for el in img_names] # list of path like this: cityscapes/images/train/city/hanover_000000_000019
-        #     img_file_names.extend(filtered_names) # list of names like this: hanover_000000_000019
-        #     self.imgs.update(dict(zip(filtered_names, img_path_list))) # dictionary of names and paths
-
-        # ## parse gtFine directory
-        # self.labels = {}
-        # fine_file_names = []
-        # fine_path = osp.join(root, 'gtFine', mode) # cityscapes/gtFine/train or cityscapes/gtFine/val
-        # cities_fine_folders = os.listdir(fine_path)
-        # for city_fine_folder in cities_fine_folders:
-        #     city_path = osp.join(fine_path, city_fine_folder) # cityscapes/gtFine/train/[city]
-        #     img_names = os.listdir(city_path)
-        #     img_names = [el for el in img_names if 'labelTrainIds' in el]
-        #     filtered_names = [el.replace('_gtFine_labelTrainIds.png', '') for el in img_names]
-        #     img_path_list = [osp.join(city_path, el) for el in img_names]
-        #     fine_file_names.extend(filtered_names)
-        #     self.labels.update(dict(zip(filtered_names, img_path_list))) # dictionary of names and paths
-
         self.img_file_names_filtered = img_file_names
         
         # Integrity Check
@@ -129,19 +96,12 @@ class CityScapes(Dataset):
         
         img = pil_loader(img_path)
         label = Image.open(label_path)
-        
-        # Applies preprocessing when accessing the image
-        # if self.transform is not None:
-           
-        #     # img_lb_dict = dict(img = img, label = label)
-        #     # img_lb_dict = self.transform(img_lb_dict)
-        #     # img, label = img_lb_dict['img'], img_lb_dict['label']
-        #     img = self.transform(img) 
-        #     label = self.transform(label) 
             
-        resize_transform = transforms.Resize((512, 1024))
-        img = resize_transform(img) 
-        label = resize_transform(label)
+        resize_img = transforms.Resize((512, 1024), interpolation=Image.BILINEAR)
+        resize_label = transforms.Resize((512, 1024), interpolation=Image.NEAREST)
+        
+        img = resize_img(img) 
+        label = resize_label(label) 
             
         img = to_tensor(img)
         label = np.array(label).astype(np.int64)[np.newaxis, :]
@@ -156,7 +116,7 @@ class CityScapes(Dataset):
 
 if __name__ == "__main__":
     from tqdm import tqdm
-    ds = CityScapes('/content/Cityspaces/', mode='train')
+    ds = CityScapes('./Cityscapes/', mode='train')
     uni = []
     for im, lb in tqdm(ds):
         lb_uni = np.unique(lb).tolist()
