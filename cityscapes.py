@@ -53,10 +53,10 @@ def convert_labels(lb_map, label):
             label[label == k] = v
         return label
 
-# Define transforms for training phase
-train_transform = transforms.Compose([transforms.Resize(512,1024),      # Resizes short size of the PIL image to 512x1024                                                             
+# # Define transforms for training phase
+# train_transform = transforms.Compose([transforms.Resize(512,1024),      # Resizes short size of the PIL image to 512x1024                                                             
                                       
-])
+# ])
 
 
 to_tensor = transforms.Compose([
