@@ -146,7 +146,15 @@ class CityScapes(Dataset):
         
 
 
-
+if __name__ == "__main__":
+    from tqdm import tqdm
+    ds = CityScapes('./data/', mode='train')
+    uni = []
+    for im, lb in tqdm(ds):
+        lb_uni = np.unique(lb).tolist()
+        uni.extend(lb_uni)
+    print(uni)
+    print(set(uni))
 # Da capire:
 # 1. Applicare la normalizzazione o no?
 # 2. Dobbiamo usare le immagini in bianco e nero o quelle a colori
