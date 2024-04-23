@@ -26,7 +26,8 @@ def process_directory(root, mode, subfolder, file_suffix):
         city_path = osp.join(path, city_folder)
         img_names = os.listdir(city_path)
         if subfolder == "gtFine":
-            img_names = [el for el in img_names if 'labelTrainIds' in el]
+            # img_names = [el for el in img_names if 'labelTrainIds' in el]
+            img_names = [el for el in img_names if 'color' in el]
         filtered_names = [el.replace(file_suffix, '') for el in img_names]
         img_path_list = [osp.join(city_path, el) for el in img_names]
         file_names.extend(filtered_names)
