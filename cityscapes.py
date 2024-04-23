@@ -59,19 +59,17 @@ def convert_labels(lb_map, label):
                                       
 # ])
 
-train_transform = transforms.Resize(512,1024)
-
 to_tensor = transforms.Compose([
             transforms.ToTensor(),
             transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
             ])
 
 class CityScapes(Dataset):
-    def __init__(self, root, mode="train", transform=None):
+    def __init__(self, root, mode="train"):
         super(CityScapes, self).__init__()
         
         assert mode in ('train', 'val', 'test')
-        self.transform = transform
+        
         self.mode = mode
         print('self.mode', self.mode)
         
@@ -133,14 +131,17 @@ class CityScapes(Dataset):
         label = Image.open(label_path)
         
         # Applies preprocessing when accessing the image
-        if self.transform is not None:
+        # if self.transform is not None:
            
-            # img_lb_dict = dict(img = img, label = label)
-            # img_lb_dict = self.transform(img_lb_dict)
-            # img, label = img_lb_dict['img'], img_lb_dict['label']
-            img = self.transform(img) 
-            label = self.transform(label) 
+        #     # img_lb_dict = dict(img = img, label = label)
+        #     # img_lb_dict = self.transform(img_lb_dict)
+        #     # img, label = img_lb_dict['img'], img_lb_dict['label']
+        #     img = self.transform(img) 
+        #     label = self.transform(label) 
             
+        resize_transform = transforms.Resize((512, 1024))
+        img = resize_transform(img) 
+        label = resize_transform(label)
             
         img = to_tensor(img)
         label = np.array(label).astype(np.int64)[np.newaxis, :]
@@ -155,7 +156,7 @@ class CityScapes(Dataset):
 
 if __name__ == "__main__":
     from tqdm import tqdm
-    ds = CityScapes('/content/Cityspaces/', mode='train', transform=train_transform)
+    ds = CityScapes('/content/Cityspaces/', mode='train')
     uni = []
     for im, lb in tqdm(ds):
         lb_uni = np.unique(lb).tolist()
