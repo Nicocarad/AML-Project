@@ -66,7 +66,7 @@ to_tensor = transforms.Compose([
 
 class CityScapes(Dataset):
     def __init__(self, root, mode="train", transform=None):
-        super(CityScapes, self).__init__()
+        super(CityScapes, self).__init__(transform=transform)
         
         assert mode in ('train', 'val', 'test')
         self.mode = mode
