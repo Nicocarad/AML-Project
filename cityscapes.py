@@ -79,6 +79,8 @@ class CityScapes(Dataset):
             labels_info = json.load(fr)
         self.lb_map = {el['id']: el['trainId'] for el in labels_info}
         
+        print('self.lb_map', self.lb_map)
+        
         # define two dictionaries that link file names to their full addresses
         
         self.imgs, img_file_names = process_directory(root, mode, 'images', '_leftImg8bit.png')
