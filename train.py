@@ -186,7 +186,7 @@ def parse_args():
                        help='num of object classes (with void)')
     parse.add_argument('--cuda',
                        type=str,
-                       default='0',
+                       default='1',
                        help='GPU ids used for training')
     parse.add_argument('--use_gpu',
                        type=bool,
