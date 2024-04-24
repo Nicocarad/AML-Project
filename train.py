@@ -138,7 +138,7 @@ def parse_args():
     parse.add_argument('--pretrain_path',
                       dest='pretrain_path',
                       type=str,
-                      default='/checkpoints/STDCNet813M_73.91.tar', # Pretrained on ImageNet
+                      default='./checkpoints/STDCNet813M_73.91.tar', # Pretrained on ImageNet
     )
     parse.add_argument('--use_conv_last',
                        dest='use_conv_last',
@@ -217,7 +217,7 @@ def main():
 
     mode = args.mode
 
-    train_dataset = CityScapes(mode)
+    train_dataset = CityScapes('./Cityscapes/', mode)
     dataloader_train = DataLoader(train_dataset,
                     batch_size=args.batch_size,
                     shuffle=False,
@@ -225,7 +225,7 @@ def main():
                     pin_memory=False,
                     drop_last=True)
 
-    val_dataset = CityScapes(mode='val')
+    val_dataset = CityScapes('./Cityscapes/', mode='val')
     dataloader_val = DataLoader(val_dataset,
                        batch_size=1,
                        shuffle=False,
