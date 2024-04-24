@@ -53,10 +53,7 @@ def convert_labels(lb_map, label):
             label[label == k] = v
         return label
 
-# Define transforms for training phase
-# train_transform = transforms.Resize(512,1024)      # Resizes short size of the PIL image to 512x1024                                                             
-                                      
-
+                                                          
 
 to_tensor = transforms.Compose([
             transforms.ToTensor(),
@@ -123,6 +120,4 @@ if __name__ == "__main__":
         uni.extend(lb_uni)
     print(uni)
     print(set(uni))
-# Da capire:
-# 1. Applicare la normalizzazione o no?
-# 2. Dobbiamo usare le immagini in bianco e nero o quelle a colori
+
