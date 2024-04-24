@@ -138,7 +138,7 @@ def parse_args():
     parse.add_argument('--pretrain_path',
                       dest='pretrain_path',
                       type=str,
-                      default='./checkpoints/STDCNet813M_73.91.tar', # Pretrained on ImageNet
+                      default='./checkpoints', # Pretrained on ImageNet ---> incolla: /STDCNet813M_73.91.tar
     )
     parse.add_argument('--use_conv_last',
                        dest='use_conv_last',
