@@ -7,7 +7,6 @@ import os
 from PIL import Image
 import numpy as np
 import json
-import glob
 from torchvision import transforms
 
 def pil_loader(path):
@@ -36,16 +35,16 @@ def process_directory(root, mode, subfolder, file_suffix):
 
 
 
-def process_directory_optimized(root, mode, subfolder, file_suffix):
-    result = {}
-    file_names = []
-    path = osp.join(root, subfolder, mode, '**', '*' + file_suffix)
-    files = glob.glob(path, recursive=True)
-    for file in files:
-        name = osp.basename(file).replace(file_suffix, '')
-        result[name] = file
-        file_names.append(name)
-    return result, file_names
+# def process_directory_optimized(root, mode, subfolder, file_suffix):
+#     result = {}
+#     file_names = []
+#     path = osp.join(root, subfolder, mode, '**', '*' + file_suffix)
+#     files = glob.glob(path, recursive=True)
+#     for file in files:
+#         name = osp.basename(file).replace(file_suffix, '')
+#         result[name] = file
+#         file_names.append(name)
+#     return result, file_names
 
 
 def convert_labels(lb_map, label):

@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- encoding: utf-8 -*-
 from model.model_stages import BiSeNet
-from cityscapes_micheal_template import CityScapes
+from cityscapes import CityScapes
 import torch
 from torch.utils.data import DataLoader
 import logging
@@ -12,7 +12,7 @@ import torch.cuda.amp as amp
 from utils import poly_lr_scheduler
 from utils import reverse_one_hot, compute_global_accuracy, fast_hist, per_class_iu
 from tqdm import tqdm
-
+import sys
 
 logger = logging.getLogger()
 
@@ -138,7 +138,7 @@ def parse_args():
     parse.add_argument('--pretrain_path',
                       dest='pretrain_path',
                       type=str,
-                      default='./checkpoints', # Pretrained on ImageNet ---> incolla: /STDCNet813M_73.91.tar
+                      default='./checkpoints/STDCNet813M_73.91.tar', # Pretrained on ImageNet ---> incolla: /STDCNet813M_73.91.tar
     )
     parse.add_argument('--use_conv_last',
                        dest='use_conv_last',
@@ -146,7 +146,7 @@ def parse_args():
                        default=False,
     )
     parse.add_argument('--num_epochs',
-                       type=int, default=1,
+                       type=int, default=5,
                        help='Number of epochs to train for')
     parse.add_argument('--epoch_start_i',
                        type=int,
@@ -178,7 +178,7 @@ def parse_args():
                         help='learning rate used for train')
     parse.add_argument('--num_workers',
                        type=int,
-                       default=6,
+                       default=4,
                        help='num of workers')
     parse.add_argument('--num_classes',
                        type=int,
@@ -186,7 +186,7 @@ def parse_args():
                        help='num of object classes (with void)')
     parse.add_argument('--cuda',
                        type=str,
-                       default='1',
+                       default='0',
                        help='GPU ids used for training')
     parse.add_argument('--use_gpu',
                        type=bool,
@@ -194,7 +194,7 @@ def parse_args():
                        help='whether to user gpu for training')
     parse.add_argument('--save_model_path',
                        type=str,
-                       default=None,
+                       default="./saved_model",
                        help='path to save model')
     parse.add_argument('--optimizer',
                        type=str,
@@ -256,4 +256,12 @@ def main():
     val(args, model, dataloader_val)
 
 if __name__ == "__main__":
-    main()
+    
+    output_file = "output.txt"
+    with open(output_file, "w") as f:
+        
+        sys.stdout = f
+        
+        main()
+        
+        sys.stdout = sys.__stdout__
