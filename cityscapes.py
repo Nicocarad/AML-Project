@@ -60,7 +60,7 @@ def convert_labels(lb_map, label):
 
 to_tensor = transforms.Compose([
             transforms.ToTensor(),
-            transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
+            # transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
             ])
 
 class CityScapes(Dataset):
@@ -108,7 +108,7 @@ class CityScapes(Dataset):
         
         label = np.array(label).astype(np.int64)[np.newaxis, :] # This numpy array cointains one TrainId for each pixel
         
-        label = convert_labels(self.lb_map,label)
+        # label = convert_labels(self.lb_map,label)
             
         return img, label
 
