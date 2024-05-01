@@ -148,7 +148,7 @@ def parse_args():
                        default=False,
     )
     parse.add_argument('--num_epochs',
-                       type=int, default=0,
+                       type=int, default=1,
                        help='Number of epochs to train for')
     parse.add_argument('--epoch_start_i',
                        type=int,
