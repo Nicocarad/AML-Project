@@ -9,6 +9,10 @@ import numpy as np
 import json
 from torchvision import transforms
 
+import matplotlib.pyplot as plt
+import torchvision.transforms.functional as TF
+
+
 def pil_loader(path):
     # open path as file to avoid ResourceWarning (https://github.com/python-pillow/Pillow/issues/835)
     with open(path, 'rb') as f:
@@ -56,7 +60,7 @@ def convert_labels(lb_map, label):
 
 to_tensor = transforms.Compose([
             transforms.ToTensor(),
-            transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
+            # transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
             ])
 
 class CityScapes(Dataset):
@@ -93,16 +97,19 @@ class CityScapes(Dataset):
         img = pil_loader(img_path)
         label = Image.open(label_path)
             
-        resize_img = transforms.Resize((512, 1024), interpolation=Image.BILINEAR)
-        resize_label = transforms.Resize((512, 1024), interpolation=Image.NEAREST)
-        
-        img = resize_img(img) 
-        label = resize_label(label) 
+        if(self.mode == "train"):
+            resize_img = transforms.Resize((512, 1024), interpolation=Image.BILINEAR)
+            resize_label = transforms.Resize((512, 1024), interpolation=Image.NEAREST)
+            
+            img = resize_img(img) 
+            label = resize_label(label)   
             
         img = to_tensor(img)
-        label = np.array(label).astype(np.int64)[np.newaxis, :]
-        label = convert_labels(self.lb_map,label)
         
+        label = np.array(label).astype(np.int64)[np.newaxis, :] # This numpy array cointains one TrainId for each pixel
+        
+        # label = convert_labels(self.lb_map,label)
+            
         return img, label
 
     def __len__(self):
@@ -112,7 +119,7 @@ class CityScapes(Dataset):
 
 if __name__ == "__main__":
     from tqdm import tqdm
-    ds = CityScapes('./Cityscapes/', mode='train')
+    ds = CityScapes('./Cityscapes/', mode='val')
     uni = []
     for im, lb in tqdm(ds):
         lb_uni = np.unique(lb).tolist()
