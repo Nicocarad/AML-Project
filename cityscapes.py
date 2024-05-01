@@ -112,7 +112,7 @@ class CityScapes(Dataset):
 
 if __name__ == "__main__":
     from tqdm import tqdm
-    ds = CityScapes('/content/Cityscapes/Cityscapes/Cityscapes', mode='train')
+    ds = CityScapes('/Cityscapes/Cityscapes/Cityscapes', mode='train')
     uni = []
     for im, lb in tqdm(ds):
         lb_uni = np.unique(lb).tolist()
