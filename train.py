@@ -23,7 +23,8 @@ def val(args, model, dataloader):
         model.eval()
         precision_record = []
         hist = np.zeros((args.num_classes, args.num_classes))
-        for i, (data, label) in enumerate(dataloader):
+
+        for i, (data, label) in enumerate(tqdm(dataloader)):
             label = label.type(torch.LongTensor)
             data = data.cuda()
             label = label.long().cuda()
@@ -47,6 +48,7 @@ def val(args, model, dataloader):
             # label = colour_code_segmentation(np.array(label), label_info)
             precision_record.append(precision)
 
+
         precision = np.mean(precision_record)
         miou_list = per_class_iu(hist)
         miou = np.mean(miou_list)
@@ -69,7 +71,7 @@ def train(args, model, optimizer, dataloader_train, dataloader_val):
         lr = poly_lr_scheduler(optimizer, args.learning_rate, iter=epoch, max_iter=args.num_epochs)
         model.train()
         tq = tqdm(total=len(dataloader_train) * args.batch_size)
-        tq.set_description('epoch %d, lr %f' % (epoch, lr))
+        tq.set_description('Current epoch %d, lr %f' % (epoch, lr))
         loss_record = []
         for i, (data, label) in enumerate(dataloader_train):
             data = data.cuda()
@@ -146,7 +148,7 @@ def parse_args():
                        default=False,
     )
     parse.add_argument('--num_epochs',
-                       type=int, default=5,
+                       type=int, default=0,
                        help='Number of epochs to train for')
     parse.add_argument('--epoch_start_i',
                        type=int,
