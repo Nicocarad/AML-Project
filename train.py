@@ -178,7 +178,7 @@ def parse_args():
                         help='learning rate used for train')
     parse.add_argument('--num_workers',
                        type=int,
-                       default=4,
+                       default=0,
                        help='num of workers')
     parse.add_argument('--num_classes',
                        type=int,
