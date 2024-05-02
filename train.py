@@ -148,7 +148,7 @@ def parse_args():
                        default=False,
     )
     parse.add_argument('--num_epochs',
-                       type=int, default=1,
+                       type=int, default=5,
                        help='Number of epochs to train for')
     parse.add_argument('--epoch_start_i',
                        type=int,
@@ -156,11 +156,11 @@ def parse_args():
                        help='Start counting epochs from this number')
     parse.add_argument('--checkpoint_step',
                        type=int,
-                       default=10,
+                       default=5,
                        help='How often to save checkpoints (epochs)')
     parse.add_argument('--validation_step',
                        type=int,
-                       default=1,
+                       default=5,
                        help='How often to perform validation (epochs)')
     parse.add_argument('--crop_height',
                        type=int,
@@ -180,7 +180,7 @@ def parse_args():
                         help='learning rate used for train')
     parse.add_argument('--num_workers',
                        type=int,
-                       default=0,
+                       default=2,
                        help='num of workers')
     parse.add_argument('--num_classes',
                        type=int,
@@ -218,6 +218,7 @@ def main():
     n_classes = args.num_classes
 
     mode = args.mode
+    
 
     train_dataset = CityScapes('/content/Cityscapes/Cityscapes/Cityspaces', mode)
     dataloader_train = DataLoader(train_dataset,
