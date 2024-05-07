@@ -30,9 +30,6 @@ def process_directory(root, subfolder, file_suffix):
     return result, file_names
 
 
-
-
-
 to_tensor = transforms.Compose(
     [
         transforms.ToTensor(),
@@ -46,10 +43,11 @@ def convert_labels(lb_map, label):
     label_id = lb_map[label[:, :, 0], label[:, :, 1], label[:, :, 2]]
     return label_id
 
+
 class GTA5(Dataset):
     def __init__(self, root, labels_info, mode="train"):
         super(GTA5, self).__init__()
-        
+
         self.count = 0
 
         assert mode in ("train", "val", "test")
@@ -88,15 +86,13 @@ class GTA5(Dataset):
 
         label = convert_labels(self.lb_map, label)
         label = label[np.newaxis, :]
-        
-        if self.count == 0:
-            print("label", label)
-            self.count += 1
+
 
         return img, label
 
     def __len__(self):
         return len(self.img_file_names_filtered)
+
 
 if __name__ == "__main__":
     from tqdm import tqdm
@@ -104,7 +100,7 @@ if __name__ == "__main__":
     with open("./GTA5_info.json", "r") as fr:
         labels_info = json.load(fr)
 
-    ds = GTA5("./GTA5/GTA5", labels_info, mode = "train")
+    ds = GTA5("./GTA5/GTA5", labels_info, mode="train")
     uni = []
     for im, lb in tqdm(ds):
         lb_uni = np.unique(lb).tolist()

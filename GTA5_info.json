@@ -255,20 +255,6 @@
     "hasInstances": false,
     "category": "object",
     "catid": 3,
-    "name": "polegroup",
-    "ignoreInEval": true,
-    "id": 18,
-    "color": [
-      153,
-      153,
-      153
-    ],
-    "trainId": 255
-  },
-  {
-    "hasInstances": false,
-    "category": "object",
-    "catid": 3,
     "name": "traffic light",
     "ignoreInEval": false,
     "id": 19,
