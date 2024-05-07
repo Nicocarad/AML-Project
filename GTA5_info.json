@@ -474,19 +474,5 @@
       32
     ],
     "trainId": 18
-  },
-  {
-    "hasInstances": false,
-    "category": "vehicle",
-    "catid": 7,
-    "name": "license plate",
-    "ignoreInEval": true,
-    "id": -1,
-    "color": [
-      0,
-      0,
-      142
-    ],
-    "trainId": -1
   }
 ]

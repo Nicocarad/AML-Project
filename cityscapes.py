@@ -47,10 +47,10 @@ def process_directory(root, mode, subfolder, file_suffix):
 #     return result, file_names
 
 
-def convert_labels(lb_map, label):
-        for k, v in lb_map.items():
-            label[label == k] = v
-        return label
+# def convert_labels(lb_map, label):
+#         for k, v in lb_map.items():
+#             label[label == k] = v
+#         return label
 
                                                           
 
