@@ -16,7 +16,7 @@ def pil_loader(path):
         img = Image.open(f)
         return img.convert('RGB')
 
-def process_directory_simple(root, mode, subfolder, file_suffix):
+def process_directory(root, mode, subfolder, file_suffix):
     result = {}
     file_names = []
     path = osp.join(root, subfolder, mode)
@@ -67,15 +67,16 @@ class GTA5(Dataset):
         img = pil_loader(img_path)
         label = Image.open(label_path)
 
-        resize_img = transforms.Resize((512, 1024), interpolation=Image.BILINEAR)
-        resize_label = transforms.Resize((512, 1024), interpolation=Image.NEAREST)
+        if(self.mode == "train"):
+            resize_img = transforms.Resize((512, 1024), interpolation=Image.BILINEAR)
+            resize_label = transforms.Resize((512, 1024), interpolation=Image.NEAREST)
 
         img = resize_img(img)
         label = resize_label(label)
 
         img = to_tensor(img)
         label = np.array(label).astype(np.int64)[np.newaxis, :]
-        label = convert_labels(self.lb_map, label)
+        # label = convert_labels(self.lb_map, label)
 
         return img, label
 
