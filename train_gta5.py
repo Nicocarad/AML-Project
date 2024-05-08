@@ -236,21 +236,21 @@ def main():
 
     mode = args.mode
 
-    train_dataset = GTA5("/content/GTA5/GTA5/GTA5", mode)
+    original_dataset = GTA5("/content/GTA5/GTA5/GTA5", mode)
 
-    indexes = range(0, len(train_dataset))
+    indexes = range(0, len(original_dataset))
     splitting = train_test_split(
         indexes,
         train_size=0.8,
         random_state=42,
-        stratify=train_dataset.data["label"],
+        stratify=original_dataset.data["label"],
         shuffle=True,
     )
     train_indexes = splitting[0]
     val_indexes = splitting[1]
 
-    train_dataset = Subset(train_dataset, train_indexes)
-    val_dataset = Subset(train_dataset, val_indexes)
+    train_dataset = Subset(original_dataset, train_indexes)
+    val_dataset = Subset(original_dataset, val_indexes)
 
     dataloader_train = DataLoader(
         train_dataset,
