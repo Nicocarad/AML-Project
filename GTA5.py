@@ -11,6 +11,8 @@ import glob
 from torchvision import transforms
 from data_augmentation import aug_colors, aug_positions
 import random
+import os
+
 
 import matplotlib.pyplot as plt
 
@@ -79,22 +81,31 @@ class GTA5(Dataset):
         if self.mode == "train":
             resize_img = transforms.Resize((512, 1024), interpolation=Image.BILINEAR)
             resize_label = transforms.Resize((512, 1024), interpolation=Image.NEAREST)
-
+ 
+            
+            
             img = resize_img(img)
             label = resize_label(label)
+            
+            
 
         if self.aug is not None and random.uniform(0, 1) > 0.5:
-            img = aug_colors(img)
+            #img = aug_colors(img)
             img = aug_positions(img)
             label = aug_positions(label)
+    
+            plt.figure(figsize=(10, 5))
 
-            # plt.imshow(img)
-            # plt.axis('off') 
-            # plt.show()
+            plt.subplot(1, 2, 1)
+            plt.imshow(img)
+            plt.title('Image')
 
-            # plt.imshow(label)
-            # plt.axis('off') 
-            # plt.show()
+            plt.subplot(1, 2, 2)
+            plt.imshow(label)
+            plt.title('Label')
+
+            plt.show()
+            
             
             
 
@@ -113,7 +124,7 @@ class GTA5(Dataset):
 
 if __name__ == "__main__":
     from tqdm import tqdm
-
+    os.environ['KMP_DUPLICATE_LIB_OK']='True'
     with open("./GTA5_info.json", "r") as fr:
         labels_info = json.load(fr)
 
