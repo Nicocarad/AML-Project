@@ -9,12 +9,16 @@ import numpy as np
 import json
 import glob
 from torchvision import transforms
-from data_augmentation import aug_colors, aug_positions
-import random
 import os
-
-
 import matplotlib.pyplot as plt
+import torch
+from torchvision import transforms
+import numpy as np
+import random
+from data_augmentation import DataAugmentation
+
+
+# Creare un trasformatore personalizzato che applica la stessa trasformazione a entrambe l'immagine e l'etichetta
 
 
 def pil_loader(path):
@@ -24,10 +28,10 @@ def pil_loader(path):
         return img.convert("RGB")
 
 
-def process_directory(root, subfolder, file_suffix):
+def process_directory(root, mode, subfolder, file_suffix):
     result = {}
     file_names = []
-    path = osp.join(root, subfolder)
+    path = osp.join(root, mode, subfolder)
     files = glob.glob(path + "/*" + file_suffix)
     for file in files:
         name = osp.splitext(osp.basename(file))[0]
@@ -51,12 +55,15 @@ def convert_labels(lb_map, label):
 
 
 class GTA5(Dataset):
-    def __init__(self, root, labels_info, mode="train", aug=None):
+    def __init__(self, root, labels_info, mode="train", apply_transform=None):
         super(GTA5, self).__init__()
 
         assert mode in ("train", "val", "test")
         self.mode = mode
-        self.aug = aug
+
+        if(mode == "train" and apply_transform == True):
+            self.apply_transform = apply_transform
+            self.transform = DataAugmentation()
 
         self.lb_map = np.zeros((256, 256, 256), dtype=np.int64)
         for el in labels_info:
@@ -64,8 +71,8 @@ class GTA5(Dataset):
             trainId = el["trainId"]
             self.lb_map[color[0], color[1], color[2]] = trainId
 
-        self.imgs, img_file_names = process_directory(root, "images", ".png")
-        self.labels, fine_file_names = process_directory(root, "labels", ".png")
+        self.imgs, img_file_names = process_directory(root, mode, "images", ".png")
+        self.labels, fine_file_names = process_directory(root, mode, "labels", ".png")
 
         assert set(img_file_names) == set(fine_file_names)
         self.img_file_names_filtered = img_file_names
@@ -81,33 +88,14 @@ class GTA5(Dataset):
         if self.mode == "train":
             resize_img = transforms.Resize((512, 1024), interpolation=Image.BILINEAR)
             resize_label = transforms.Resize((512, 1024), interpolation=Image.NEAREST)
- 
-            
-            
+
             img = resize_img(img)
             label = resize_label(label)
-            
-            
 
-        if self.aug is not None and random.uniform(0, 1) > 0.5:
-            #img = aug_colors(img)
-            img = aug_positions(img)
-            label = aug_positions(label)
-    
-            plt.figure(figsize=(10, 5))
+            if self.apply_transform is not None and random.uniform(0, 1) > 0.5:
 
-            plt.subplot(1, 2, 1)
-            plt.imshow(img)
-            plt.title('Image')
-
-            plt.subplot(1, 2, 2)
-            plt.imshow(label)
-            plt.title('Label')
-
-            plt.show()
-            
-            
-            
+                img, label = self.transform.Positionaltransform(img, label)
+                img = self.transform.Colortransform(img)
 
         img = to_tensor(img)
         label = np.array(label).astype(np.int64)[np.newaxis, :]
@@ -124,11 +112,12 @@ class GTA5(Dataset):
 
 if __name__ == "__main__":
     from tqdm import tqdm
-    os.environ['KMP_DUPLICATE_LIB_OK']='True'
+
+    os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
     with open("./GTA5_info.json", "r") as fr:
         labels_info = json.load(fr)
 
-    ds = GTA5("./GTA5/GTA5", labels_info, mode="train", aug=True)
+    ds = GTA5("./GTA5/GTA5", labels_info, mode="train", apply_transform=True)
     uni = []
     for im, lb in tqdm(ds):
         lb_uni = np.unique(lb).tolist()

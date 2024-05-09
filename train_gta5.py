@@ -14,6 +14,9 @@ from utils import reverse_one_hot, compute_global_accuracy, fast_hist, per_class
 from tqdm import tqdm
 import sys
 from sklearn.model_selection import train_test_split
+import os
+import split_GTA5
+import json
 
 logger = logging.getLogger()
 
@@ -235,22 +238,23 @@ def main():
     n_classes = args.num_classes
 
     mode = args.mode
+    root = "/content/GTA5/GTA5/GTA5"
 
-    original_dataset = GTA5("/content/GTA5/GTA5/GTA5", mode)
+    with open("./GTA5_info.json", "r") as fr:
+        labels_info = json.load(fr)
 
-    indexes = range(0, len(original_dataset))
-    splitting = train_test_split(
-        indexes,
-        train_size=0.8,
-        random_state=42,
-        stratify=original_dataset.data["label"],
-        shuffle=True,
+    # Check if the dataset is split in train and val
+    subdirectories = [
+        subdir
+        for subdir in os.listdir(root)
+        if os.path.isdir(os.path.join(root, subdir))
+    ]
+    if "train" not in subdirectories or "val" not in subdirectories:
+        split_GTA5.main(root)
+
+    train_dataset = GTA5(
+        root, labels_info=labels_info, mode="train", apply_transform=False
     )
-    train_indexes = splitting[0]
-    val_indexes = splitting[1]
-
-    train_dataset = Subset(original_dataset, train_indexes)
-    val_dataset = Subset(original_dataset, val_indexes)
 
     dataloader_train = DataLoader(
         train_dataset,
@@ -261,7 +265,7 @@ def main():
         drop_last=True,
     )
 
-    val_dataset = GTA5("/content/GTA5/GTA5/Cityspaces", mode="val")
+    val_dataset = GTA5(root, labels_info=labels_info, mode="val", apply_transform=False)
     dataloader_val = DataLoader(
         val_dataset,
         batch_size=1,
@@ -303,7 +307,7 @@ def main():
 
 if __name__ == "__main__":
 
-    output_file = "output.txt"
+    output_file = "output_gta5.txt"
     with open(output_file, "w") as f:
 
         sys.stdout = f

@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- encoding: utf-8 -*-
 from model.model_stages import BiSeNet
-from GTA5 import GTA5
+from cityscapes import Cityscapes
 import torch
 from torch.utils.data import DataLoader
 import logging
@@ -220,7 +220,7 @@ def main():
     mode = args.mode
     
 
-    train_dataset = GTA5('/content/GTA5/GTA5/Cityspaces', mode)
+    train_dataset = Cityscapes('/content/Cityscapes/Cityscapes/Cityspaces', mode="train")
     dataloader_train = DataLoader(train_dataset,
                     batch_size=args.batch_size,
                     shuffle=False,
@@ -228,7 +228,7 @@ def main():
                     pin_memory=False,
                     drop_last=True)
 
-    val_dataset = GTA5('/content/GTA5/GTA5/Cityspaces', mode='val')
+    val_dataset = Cityscapes('/content/Cityscapes/Cityscapes/Cityspaces', mode='val')
     dataloader_val = DataLoader(val_dataset,
                        batch_size=1,
                        shuffle=False,
@@ -260,7 +260,7 @@ def main():
 
 if __name__ == "__main__":
     
-    output_file = "output.txt"
+    output_file = "output_cityscapes.txt"
     with open(output_file, "w") as f:
         
         sys.stdout = f
