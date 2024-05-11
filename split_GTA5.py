@@ -31,17 +31,17 @@ def save_images_to_directory(images, source_directory, target_directory):
 def main(root="GTA5/GTA5"):
     
     random.seed(42)
-    directory = "GTA5/GTA5/images"
+    directory = "./GTA5/images"
     image_names = get_image_names(directory)
     shuffled_vector = shuffle_vector(image_names)
     vector1, vector2 = split_vector(shuffled_vector, 500)
 
 
-    save_images_to_directory(vector1, "GTA5/GTA5/images", "GTA5/GTA5/val/images")
-    save_images_to_directory(vector2, "GTA5/GTA5/images", "GTA5/GTA5/train/images")
+    save_images_to_directory(vector1, "./GTA5/images", "./GTA5/val/images")
+    save_images_to_directory(vector2, "./GTA5/images", "./GTA5/train/images")
 
-    save_images_to_directory(vector1, "GTA5/GTA5/labels", "GTA5/GTA5/val/labels")
-    save_images_to_directory(vector2, "GTA5/GTA5/labels", "GTA5/GTA5/train/labels")
+    save_images_to_directory(vector1, "./GTA5/labels", "./GTA5/val/labels")
+    save_images_to_directory(vector2, "./GTA5/labels", "./GTA5/train/labels")
 
 
 if __name__ == "__main__":

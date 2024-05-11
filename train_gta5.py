@@ -1,5 +1,6 @@
 #!/usr/bin/python
 # -*- encoding: utf-8 -*-
+from comet_ml import Experiment
 from model.model_stages import BiSeNet
 from GTA5 import GTA5
 import torch
@@ -18,7 +19,13 @@ import os
 import split_GTA5
 import json
 
+
 logger = logging.getLogger()
+
+
+
+# Crea un esperimento Comet.ml
+experiment = Experiment(api_key="knoxznRgLLK2INEJ9GIbmR7ww", project_name="AML_project")
 
 
 def val(args, model, dataloader):
@@ -58,6 +65,8 @@ def val(args, model, dataloader):
         print("precision per pixel for test: %.3f" % precision)
         print("mIoU for validation: %.3f" % miou)
         print(f"mIoU per class: {miou_list}")
+        experiment.log_metric("precision", precision)
+        experiment.log_metric("miou", miou)
 
         return precision, miou
 
@@ -126,7 +135,8 @@ def train(args, model, optimizer, dataloader_train, dataloader_val):
                 )
             writer.add_scalar("epoch/precision_val", precision, epoch)
             writer.add_scalar("epoch/miou val", miou, epoch)
-
+            
+    experiment.log_metric("loss_train_mean", loss_train_mean)
 
 def str2bool(v):
     if v.lower() in ("yes", "true", "t", "y", "1"):
@@ -233,12 +243,12 @@ def parse_args():
 
 def main():
     args = parse_args()
-
+    experiment.log_parameters(vars(args))
     ## dataset
     n_classes = args.num_classes
 
     mode = args.mode
-    root = "/content/GTA5/GTA5/GTA5"
+    root = "./GTA5"
 
     with open("./GTA5_info.json", "r") as fr:
         labels_info = json.load(fr)
@@ -303,6 +313,7 @@ def main():
     train(args, model, optimizer, dataloader_train, dataloader_val)
     # final test
     val(args, model, dataloader_val)
+    experiment.end()
 
 
 if __name__ == "__main__":

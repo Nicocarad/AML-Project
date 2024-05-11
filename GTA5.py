@@ -10,8 +10,6 @@ import json
 import glob
 from torchvision import transforms
 import os
-import matplotlib.pyplot as plt
-import torch
 from torchvision import transforms
 import numpy as np
 import random
@@ -55,14 +53,15 @@ def convert_labels(lb_map, label):
 
 
 class GTA5(Dataset):
-    def __init__(self, root, labels_info, mode="train", apply_transform=None):
+    def __init__(self, root, labels_info, mode="train", apply_transform=False):
         super(GTA5, self).__init__()
 
         assert mode in ("train", "val", "test")
         self.mode = mode
+        self.apply_transform = apply_transform
 
-        if(mode == "train" and apply_transform == True):
-            self.apply_transform = apply_transform
+        if mode == "train" and self.apply_transform == True:
+
             self.transform = DataAugmentation()
 
         self.lb_map = np.zeros((256, 256, 256), dtype=np.int64)
@@ -92,7 +91,7 @@ class GTA5(Dataset):
             img = resize_img(img)
             label = resize_label(label)
 
-            if self.apply_transform is not None and random.uniform(0, 1) > 0.5:
+            if self.apply_transform == True and random.uniform(0, 1) > 0.5:
 
                 img, label = self.transform.Positionaltransform(img, label)
                 img = self.transform.Colortransform(img)
