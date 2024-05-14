@@ -20,10 +20,10 @@ logger = logging.getLogger()
 experiment = Experiment(api_key="knoxznRgLLK2INEJ9GIbmR7ww", project_name="AML_project")
 
 
-def val(args, model, dataloader, respth):
+def val(args, model, dataloader):
     print("start val!")
     with torch.no_grad():
-        model.load_state_dict(torch.load(respth))
+        
         model.eval()
         precision_record = []
         hist = np.zeros((args.num_classes, args.num_classes))
@@ -195,12 +195,14 @@ def main():
         pretrain_model=args.pretrain_path,
         use_conv_last=args.use_conv_last,
     )
+    
+    model.load_state_dict(torch.load(args.respth))
 
     if torch.cuda.is_available() and args.use_gpu:
         model = torch.nn.DataParallel(model).cuda()
 
     # final test
-    val(args, model, dataloader_val, args.respth)
+    val(args, model, dataloader_val)
     experiment.end()
 
 
