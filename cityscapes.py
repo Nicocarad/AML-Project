@@ -43,9 +43,9 @@ to_tensor = transforms.Compose([
             transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
             ])
 
-class CityScapes(Dataset):
+class Cityscapes(Dataset):
     def __init__(self, root, mode="train"):
-        super(CityScapes, self).__init__()
+        super(Cityscapes, self).__init__()
         
         assert mode in ('train', 'val', 'test')
         self.mode = mode
@@ -97,7 +97,7 @@ class CityScapes(Dataset):
 
 if __name__ == "__main__":
     from tqdm import tqdm
-    ds = CityScapes('./Cityscapes/Cityspaces/', mode='train')
+    ds = Cityscapes('./Cityscapes/Cityspaces/', mode='train')
     uni = []
     for im, lb in tqdm(ds):
         lb_uni = np.unique(lb).tolist()
