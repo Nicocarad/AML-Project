@@ -35,6 +35,9 @@ def main(root="GTA5/GTA5"):
     image_names = get_image_names(directory)
     shuffled_vector = shuffle_vector(image_names)
     vector1, vector2 = split_vector(shuffled_vector, 500)
+    
+    print("Length of vector1",len(vector1))
+    print("Length of vector2",len(vector2))
 
 
     save_images_to_directory(vector1, "./GTA5/images", "./GTA5/val/images")

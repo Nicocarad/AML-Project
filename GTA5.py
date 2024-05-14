@@ -14,6 +14,7 @@ from torchvision import transforms
 import numpy as np
 import random
 from data_augmentation import DataAugmentation
+import matplotlib.pyplot as plt
 
 
 # Creare un trasformatore personalizzato che applica la stessa trasformazione a entrambe l'immagine e l'etichetta
@@ -53,12 +54,13 @@ def convert_labels(lb_map, label):
 
 
 class GTA5(Dataset):
-    def __init__(self, root, labels_info, mode="train", apply_transform=False):
+    def __init__(self, root, labels_info, mode, apply_transform=False):
         super(GTA5, self).__init__()
 
         assert mode in ("train", "val", "test")
         self.mode = mode
         self.apply_transform = apply_transform
+        self.counter = 0
 
         if mode == "train" and self.apply_transform == True:
 
@@ -97,6 +99,7 @@ class GTA5(Dataset):
                 img = self.transform.Colortransform(img)
 
         img = to_tensor(img)
+
         label = np.array(label).astype(np.int64)[np.newaxis, :]
         label = np.squeeze(label)
 
@@ -112,11 +115,11 @@ class GTA5(Dataset):
 if __name__ == "__main__":
     from tqdm import tqdm
 
-    os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
+    # os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
     with open("./GTA5_info.json", "r") as fr:
         labels_info = json.load(fr)
-
-    ds = GTA5("./GTA5/GTA5", labels_info, mode="train", apply_transform=True)
+    print("Load dataset")
+    ds = GTA5("./GTA5", labels_info, mode="val", apply_transform=True)
     uni = []
     for im, lb in tqdm(ds):
         lb_uni = np.unique(lb).tolist()

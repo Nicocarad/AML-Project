@@ -14,14 +14,12 @@ from utils import poly_lr_scheduler
 from utils import reverse_one_hot, compute_global_accuracy, fast_hist, per_class_iu
 from tqdm import tqdm
 import sys
-from sklearn.model_selection import train_test_split
 import os
 import split_GTA5
 import json
 
 
 logger = logging.getLogger()
-
 
 
 # Crea un esperimento Comet.ml
@@ -72,6 +70,8 @@ def val(args, model, dataloader):
 
 
 def train(args, model, optimizer, dataloader_train, dataloader_val):
+
+    print("start train!")
     writer = SummaryWriter(comment="".format(args.optimizer))
 
     scaler = amp.GradScaler()
@@ -135,8 +135,9 @@ def train(args, model, optimizer, dataloader_train, dataloader_val):
                 )
             writer.add_scalar("epoch/precision_val", precision, epoch)
             writer.add_scalar("epoch/miou val", miou, epoch)
-            
+
     experiment.log_metric("loss_train_mean", loss_train_mean)
+
 
 def str2bool(v):
     if v.lower() in ("yes", "true", "t", "y", "1"):
@@ -263,7 +264,7 @@ def main():
         split_GTA5.main(root)
 
     train_dataset = GTA5(
-        root, labels_info=labels_info, mode="train", apply_transform=False
+        root, labels_info=labels_info, mode="train", apply_transform=True
     )
 
     dataloader_train = DataLoader(
