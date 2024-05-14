@@ -2,7 +2,6 @@
 # -*- encoding: utf-8 -*-
 from comet_ml import Experiment
 from model.model_stages import BiSeNet
-from GTA5 import GTA5
 import torch
 from torch.utils.data import Subset, DataLoader
 import logging
