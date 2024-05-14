@@ -23,7 +23,6 @@ experiment = Experiment(api_key="knoxznRgLLK2INEJ9GIbmR7ww", project_name="AML_p
 def val(args, model, dataloader, respth):
     print("start val!")
     with torch.no_grad():
-        model = torch.nn.DataParallel(model)
         model.load_state_dict(torch.load(respth))
         model.eval()
         precision_record = []
