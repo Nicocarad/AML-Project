@@ -20,9 +20,10 @@ logger = logging.getLogger()
 experiment = Experiment(api_key="knoxznRgLLK2INEJ9GIbmR7ww", project_name="AML_project")
 
 
-def val(args, model, dataloader):
+def val(args, model, dataloader, respth):
     print("start val!")
     with torch.no_grad():
+        model.load_state_dict(torch.load(respth))
         model.eval()
         precision_record = []
         hist = np.zeros((args.num_classes, args.num_classes))
@@ -161,6 +162,12 @@ def parse_args():
         default="adam",
         help="optimizer, support rmsprop, sgd, adam",
     )
+    parse.add_argument(
+        "--respth",
+        type=str,
+        default="",
+        help="trained model",
+    )
     parse.add_argument("--loss", type=str, default="crossentropy", help="loss function")
 
     return parse.parse_args()
@@ -193,7 +200,7 @@ def main():
         model = torch.nn.DataParallel(model).cuda()
 
     # final test
-    val(args, model, dataloader_val)
+    val(args, model, dataloader_val, args.respth)
     experiment.end()
 
 
