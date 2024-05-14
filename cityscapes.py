@@ -35,22 +35,6 @@ def process_directory(root, mode, subfolder, file_suffix):
 
 
 
-# def process_directory_optimized(root, mode, subfolder, file_suffix):
-#     result = {}
-#     file_names = []
-#     path = osp.join(root, subfolder, mode, '**', '*' + file_suffix)
-#     files = glob.glob(path, recursive=True)
-#     for file in files:
-#         name = osp.basename(file).replace(file_suffix, '')
-#         result[name] = file
-#         file_names.append(name)
-#     return result, file_names
-
-
-# def convert_labels(lb_map, label):
-#         for k, v in lb_map.items():
-#             label[label == k] = v
-#         return label
 
                                                           
 
