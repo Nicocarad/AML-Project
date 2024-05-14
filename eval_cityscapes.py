@@ -10,7 +10,7 @@ import numpy as np
 from utils import reverse_one_hot, compute_global_accuracy, fast_hist, per_class_iu
 from tqdm import tqdm
 import sys
-from cityscapes import Cityscapes
+from cityscapes import CityScapes
 
 
 logger = logging.getLogger()
@@ -172,7 +172,7 @@ def main():
     ## dataset
     n_classes = args.num_classes
 
-    val_dataset = Cityscapes("/content/Cityscapes/Cityscapes/Cityspaces", mode="val")
+    val_dataset = Cityscapes("./Cityspaces", mode="val")
     dataloader_val = DataLoader(
         val_dataset,
         batch_size=1,

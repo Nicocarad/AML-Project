@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- encoding: utf-8 -*-
 from model.model_stages import BiSeNet
-from cityscapes import Cityscapes
+from cityscapes import CityScapes
 import torch
 from torch.utils.data import DataLoader
 import logging
