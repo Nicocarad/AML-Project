@@ -192,7 +192,6 @@ def main():
     model = BiSeNet(
         backbone=args.backbone,
         n_classes=n_classes,
-        pretrain_model=args.pretrain_path,
         use_conv_last=args.use_conv_last,
     )
     
