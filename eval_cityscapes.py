@@ -25,7 +25,6 @@ def val(args, model, dataloader, respth):
     with torch.no_grad():
         model = torch.nn.DataParallel(model)
         model.load_state_dict(torch.load(respth))
-        model.load_state_dict(torch.load(respth))
         model.eval()
         precision_record = []
         hist = np.zeros((args.num_classes, args.num_classes))
