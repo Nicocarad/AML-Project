@@ -172,7 +172,7 @@ def main():
     ## dataset
     n_classes = args.num_classes
 
-    val_dataset = Cityscapes("./Cityspaces", mode="val")
+    val_dataset = Cityscapes("/content/Cityscapes/Cityscapes/Cityspaces", mode="val")
     dataloader_val = DataLoader(
         val_dataset,
         batch_size=1,
