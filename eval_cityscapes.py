@@ -23,7 +23,7 @@ experiment = Experiment(api_key="knoxznRgLLK2INEJ9GIbmR7ww", project_name="AML_p
 def val(args, model, dataloader):
     print("start val!")
     with torch.no_grad():
-        
+
         model.eval()
         precision_record = []
         hist = np.zeros((args.num_classes, args.num_classes))
@@ -36,11 +36,15 @@ def val(args, model, dataloader):
             # get RGB predict image
             predict, _, _ = model(data)
             predict = predict.squeeze(0)
+
+            print("Predict before", predict)
             predict = reverse_one_hot(predict)
+            print("Predict after one hot", predict)
             predict = np.array(predict.cpu())
 
             # get RGB label image
             label = label.squeeze()
+            print("Label", label)
             label = np.array(label.cpu())
 
             # compute per pixel accuracy
@@ -194,7 +198,7 @@ def main():
         n_classes=n_classes,
         use_conv_last=args.use_conv_last,
     )
-    
+
     model.load_state_dict(torch.load(args.respth))
 
     if torch.cuda.is_available() and args.use_gpu:

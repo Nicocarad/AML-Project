@@ -32,11 +32,15 @@ def val(args, model, dataloader):
             # get RGB predict image
             predict, _, _ = model(data)
             predict = predict.squeeze(0)
+            
+            # print("Predict", predict)
             predict = reverse_one_hot(predict)
+            # print("Predict one hot", predict)
             predict = np.array(predict.cpu())
 
             # get RGB label image
             label = label.squeeze()
+            # print("Label", label)
             label = np.array(label.cpu())
 
             # compute per pixel accuracy
