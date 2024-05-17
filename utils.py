@@ -9,6 +9,15 @@ import numbers
 import torchvision
 
 
+def poly_lr_scheduler_D(optimizer, init_lr, i_iter, learning_rate_D=1e-4, num_steps=150000, power=0.9):
+    lr = learning_rate_D * ((1 - float(i_iter) / num_steps) ** (power))
+    optimizer.param_groups[0]['lr'] = lr
+    if len(optimizer.param_groups) > 1:
+        optimizer.param_groups[1]['lr'] = lr * 10
+
+    return lr
+
+
 def poly_lr_scheduler(
     optimizer, init_lr, iter, lr_decay_iter=1, max_iter=300, power=0.9
 ):

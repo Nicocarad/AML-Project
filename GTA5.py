@@ -62,7 +62,7 @@ class GTA5(Dataset):
         self.apply_transform = apply_transform
         self.counter = 0
 
-        if mode == "train" and self.apply_transform == True:
+        if self.apply_transform == True:
 
             self.transform = DataAugmentation()
 
@@ -93,7 +93,7 @@ class GTA5(Dataset):
             img = resize_img(img)
             label = resize_label(label)
 
-            if self.apply_transform == True and random.uniform(0, 1) > 0.5:
+        if self.apply_transform == True and random.uniform(0, 1) > 0.5:
 
                 img, label = self.transform.Positionaltransform(img, label)
                 img = self.transform.Colortransform(img)

@@ -9,18 +9,96 @@ import argparse
 import numpy as np
 from tensorboardX import SummaryWriter
 import torch.cuda.amp as amp
-from utils import poly_lr_scheduler
+from utils import poly_lr_scheduler, poly_lr_scheduler_D
 from utils import reverse_one_hot, compute_global_accuracy, fast_hist, per_class_iu
 from tqdm import tqdm
 import sys
 from model.discriminator import FCDiscriminator
 import torch.optim as optim
+import ConcatDataset
+import Subset
+import torch.nn.functional as F
+from torch.autograd import Variable
 
 
-def train(args, model, optimizer, dataloader_train, dataloader_val):
+def train_on_source(
+    args,
+    model,
+    optimizer,
+    model_D1,
+    trainloader_iter,
+    loss_func,
+    scaler,
+    tq,
+    writer,
+    loss_record,
+    epoch,
+):
 
-    print("start train!")
-    
+    for param in model_D1.parameters():
+
+        param.requires_grad = False
+
+        _, batch = trainloader_iter.next()
+
+        data, label = batch
+
+        data = data.cuda()
+        label = label.long().cuda()
+        # OPTIMIZER.ZERO_GRAD() ????????? add only if validation is implemented here
+
+        with amp.autocast():
+            output, out16, out32 = model(data)
+            loss1 = loss_func(output, label.squeeze(1))
+            loss2 = loss_func(out16, label.squeeze(1))
+            loss3 = loss_func(out32, label.squeeze(1))
+            loss = loss1 + loss2 + loss3
+
+        scaler.scale(loss).backward()
+        scaler.step(optimizer)
+        scaler.update()
+
+        tq.update(args.batch_size)
+        tq.set_postfix(loss="%.6f" % loss)
+        step += 1
+        writer.add_scalar("loss_step", loss, step)
+        loss_record.append(loss.item())
+        tq.close()
+        loss_train_mean = np.mean(loss_record)
+        writer.add_scalar("epoch/loss_epoch_train", float(loss_train_mean), epoch)
+        print("loss for train : %f" % (loss_train_mean))
+        if epoch % args.checkpoint_step == 0 and epoch != 0:
+            import os
+
+            if not os.path.isdir(args.save_model_path):
+                os.mkdir(args.save_model_path)
+            torch.save(
+                model.module.state_dict(),
+                os.path.join(args.save_model_path, "adversarial_latest.pth"),
+            )
+    return output
+
+
+def train_on_target(
+    targetloader_iter, model, model_D1, bce_loss, source_label, cuda, num_batches
+):
+    _, batch = targetloader_iter.next()
+
+    data, _ = batch
+    data = data.cuda()
+
+    with amp.autocast():
+        pred_target, _, _ = model(data)
+
+    D_out1 = model_D1(F.softmax(pred_target))
+
+    loss_adv_target1 = bce_loss(
+        D_out1,
+        Variable(torch.FloatTensor(D_out1.data.size()).fill_(source_label)).cuda(cuda),
+    )
+
+    loss = loss_adv_target1 // num_batches
+    loss.backward()
 
 
 def str2bool(v):
@@ -128,48 +206,150 @@ def parse_args():
 
 def main():
     args = parse_args()
-    
+
     n_classes = args.num_classes
 
     mode = args.mode
-    
-    # Load train (source) dataset --> GTA5
-    train_dataset = GTA5("/content/GTA5/GTA5/GTA5", mode="train")
-    trainloader = DataLoader(
-        train_dataset,
+
+    # Load train (target) dataset -> Cityscapes
+    target_dataset = Cityscapes(
+        "/content/Cityscapes/Cityscapes/Cityspaces", mode="train"
+    )
+    # Load test (source) dataset -> GTA5
+    train_dataset = GTA5("/content/GTA5/GTA5/GTA5", mode="train", apply_transform=False)
+
+    # Reduce GTA5 dataset to the same size of Cityscapes dataset
+    target_size = len(target_dataset)
+    train_subset = Subset(train_dataset, indices=range(target_size))
+
+    num_batches = len(train_subset) // args.batch_size
+
+    # Crea i DataLoader
+    targetloader = DataLoader(
+        target_dataset,
         batch_size=args.batch_size,
         shuffle=False,
         num_workers=args.num_workers,
         pin_memory=False,
         drop_last=True,
     )
-    
-    # Load train (target) dataset -> Cityscapes
-    target_dataset = Cityscapes('/content/Cityscapes/Cityscapes/Cityspaces', mode="train")
-    targetloader = DataLoader(target_dataset,
-                    batch_size=args.batch_size,
-                    shuffle=False,
-                    num_workers=args.num_workers,
-                    pin_memory=False,
-                    drop_last=True)
-    
-    
+
+    trainloader = DataLoader(
+        train_subset,
+        batch_size=args.batch_size,
+        shuffle=False,
+        num_workers=args.num_workers,
+        pin_memory=False,
+        drop_last=True,
+    )
+
+    trainloader_iter = enumerate(trainloader)
+    targetloader_iter = enumerate(targetloader)
+
     # Define the model --> BiSeNet
-    model = BiSeNet(backbone=args.backbone, n_classes=n_classes, pretrain_model=args.pretrain_path, use_conv_last=args.use_conv_last)
-    
+    model = BiSeNet(
+        backbone=args.backbone,
+        n_classes=n_classes,
+        pretrain_model=args.pretrain_path,
+        use_conv_last=args.use_conv_last,
+    )
+
     # Define discriminator function
     model_D1 = FCDiscriminator(num_classes=args.num_classes)
-    
+
+    model_D1.train()
+    model_D1.cuda(args.cuda)
+
     # Define optimizer for Discriminator function
-    optimizer_D1 = optim.Adam(model_D1.parameters(), lr=args.learning_rate_D, betas=(0.9, 0.99))
+    optimizer_D1 = optim.Adam(
+        model_D1.parameters(), lr=args.learning_rate_D, betas=(0.9, 0.99)
+    )
     optimizer_D1.zero_grad()
-    
+
+    # Define optimizer for model
+    if args.optimizer == "rmsprop":
+        optimizer = torch.optim.RMSprop(model.parameters(), args.learning_rate)
+    elif args.optimizer == "sgd":
+        optimizer = torch.optim.SGD(
+            model.parameters(), args.learning_rate, momentum=0.9, weight_decay=1e-4
+        )
+    elif args.optimizer == "adam":
+        optimizer = torch.optim.Adam(model.parameters(), args.learning_rate)
+    else:  # rmsprop
+        print("not supported optimizer \n")
+        return None
+
     # interp = nn.Upsample(size=(input_size[1], input_size[0]), mode='bilinear')
     # interp_target = nn.Upsample(size=(input_size_target[1], input_size_target[0]), mode='bilinear')
-    
+
     # labels for adversarial training
-    source_label = 0 # GTA5
-    target_label = 1 # Cityscapes
+    source_label = 0  # GTA5
+    target_label = 1  # Cityscapes
+
+    writer = SummaryWriter(comment="".format(args.optimizer))
+
+    scaler = amp.GradScaler()
+
+    loss_func = torch.nn.CrossEntropyLoss(ignore_index=255)
+    max_miou = 0
+    step = 0
+
+    bce_loss = torch.nn.BCEWithLogitsLoss()
+    # or bce_loss = torch.nn.MSELoss()
+
+    for epoch in range(args.num_epochs):
+
+        loss_seg_value1 = 0
+        loss_adv_target_value1 = 0
+        loss_D_value1 = 0
+
+        # Learning rate adaptation
+        lr = poly_lr_scheduler(
+            optimizer, args.learning_rate, iter=epoch, max_iter=args.num_epochs
+        )
+        lr_D = poly_lr_scheduler_D(
+            optimizer_D1, args.learning_rate, iter=epoch, max_iter=args.num_epochs
+        )
+
+        optimizer.zero_grad()
+        optimizer_D1.zero_grad()
+
+        model.train()
+        tq = tqdm(total=len(trainloader) * args.batch_size)
+        tq.set_description("Current epoch %d, lr %f, lr_D" % (epoch, lr, lr_D))
+        loss_record = []
+
+        for _ in range(num_batches):
+
+            source_pred = train_on_source(
+                args,
+                model,
+                optimizer,
+                model_D1,
+                trainloader_iter,
+                loss_func,
+                scaler,
+                tq,
+                writer,
+                loss_record,
+                epoch,
+            )
+
+            ## train on target
+            
+            train_on_target(
+                targetloader_iter, model, model_D1, optimizer, bce_loss, source_label, scaler, args.cuda, num_batches
+            )
+            
+            for param in model_D1.parameters():
+                param.requires_grad = True
+                
+             
+            source_pred = source_pred.detach()
+            D_out1 = model_D1(F.softmax(source_pred))
+            loss_D1 = bce_loss(D_out1,
+                              Variable(torch.FloatTensor(D_out1.data.size()).fill_(source_label)).cuda(args.gpu))
+
 
 if __name__ == "__main__":
 
