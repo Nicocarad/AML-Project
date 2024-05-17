@@ -44,12 +44,15 @@ def val(args, model, dataloader):
 
             # get RGB label image
             label = label.squeeze()
-            print("Label", label)
+            unique_values = torch.unique(label)
+            print("Unique values in label:", unique_values)
             label = np.array(label.cpu())
 
             # compute per pixel accuracy
             precision = compute_global_accuracy(predict, label)
             hist += fast_hist(label.flatten(), predict.flatten(), args.num_classes)
+            
+            print("Hist", hist)
 
             # there is no need to transform the one-hot array to visual RGB array
             # predict = colour_code_segmentation(np.array(predict), label_info)
