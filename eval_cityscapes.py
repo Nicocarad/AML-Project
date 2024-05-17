@@ -215,6 +215,7 @@ def main():
 if __name__ == "__main__":
 
     output_file = "output_eval_cityscapes.txt"
+    print("Ciao")
     with open(output_file, "w") as f:
 
         sys.stdout = f
