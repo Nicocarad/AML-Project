@@ -19,6 +19,46 @@ import ConcatDataset
 import Subset
 import torch.nn.functional as F
 from torch.autograd import Variable
+import os
+
+
+def train_discriminator(
+    model_D1,
+    source_pred,
+    target_pred,
+    bce_loss,
+    num_batches,
+    source_label,
+    target_label,
+    cuda,
+):
+
+    for param in model_D1.parameters():
+        param.requires_grad = True
+
+    source_pred = source_pred.detach()
+    D_out1 = model_D1(F.softmax(source_pred))
+    loss_D1 = bce_loss(
+        D_out1,
+        Variable(torch.FloatTensor(D_out1.data.size()).fill_(source_label)).cuda(cuda),
+    )
+
+    loss_D1 = loss_D1 / num_batches / 2
+
+    loss_D1.backward()
+
+    target_pred = target_pred.detach()
+
+    D_out1 = model_D1(F.softmax(target_pred))
+
+    loss_D1 = bce_loss(
+        D_out1,
+        Variable(torch.FloatTensor(D_out1.data.size()).fill_(target_label)).cuda(cuda),
+    )
+
+    loss_D1 = loss_D1 / num_batches / 2
+
+    loss_D1.backward()
 
 
 def train_on_source(
@@ -55,32 +95,24 @@ def train_on_source(
             loss = loss1 + loss2 + loss3
 
         scaler.scale(loss).backward()
-        scaler.step(optimizer)
+        scaler.step(optimizer)  ## E' corretto fare l'update e lo step qui?
         scaler.update()
 
-        tq.update(args.batch_size)
-        tq.set_postfix(loss="%.6f" % loss)
         step += 1
-        writer.add_scalar("loss_step", loss, step)
-        loss_record.append(loss.item())
-        tq.close()
-        loss_train_mean = np.mean(loss_record)
-        writer.add_scalar("epoch/loss_epoch_train", float(loss_train_mean), epoch)
-        print("loss for train : %f" % (loss_train_mean))
-        if epoch % args.checkpoint_step == 0 and epoch != 0:
-            import os
 
-            if not os.path.isdir(args.save_model_path):
-                os.mkdir(args.save_model_path)
-            torch.save(
-                model.module.state_dict(),
-                os.path.join(args.save_model_path, "adversarial_latest.pth"),
-            )
     return output
 
 
 def train_on_target(
-    targetloader_iter, model, model_D1, bce_loss, source_label, cuda, num_batches
+    targetloader_iter,
+    model,
+    optimizer,
+    model_D1,
+    bce_loss,
+    source_label,
+    scaler,
+    cuda,
+    num_batches,
 ):
     _, batch = targetloader_iter.next()
 
@@ -97,8 +129,14 @@ def train_on_target(
         Variable(torch.FloatTensor(D_out1.data.size()).fill_(source_label)).cuda(cuda),
     )
 
-    loss = loss_adv_target1 // num_batches
-    loss.backward()
+    loss = loss_adv_target1
+
+    ## E' corretto fare l'update e lo step qui?
+    scaler.scale(loss).backward()
+    scaler.step(optimizer)
+    scaler.update()
+
+    return pred_target
 
 
 def str2bool(v):
@@ -299,10 +337,6 @@ def main():
 
     for epoch in range(args.num_epochs):
 
-        loss_seg_value1 = 0
-        loss_adv_target_value1 = 0
-        loss_D_value1 = 0
-
         # Learning rate adaptation
         lr = poly_lr_scheduler(
             optimizer, args.learning_rate, iter=epoch, max_iter=args.num_epochs
@@ -321,6 +355,7 @@ def main():
 
         for _ in range(num_batches):
 
+            ## train on source
             source_pred = train_on_source(
                 args,
                 model,
@@ -336,21 +371,43 @@ def main():
             )
 
             ## train on target
-            
-            train_on_target(
-                targetloader_iter, model, model_D1, optimizer, bce_loss, source_label, scaler, args.cuda, num_batches
+
+            target_pred = train_on_target(
+                targetloader_iter,
+                model,
+                optimizer,
+                model_D1,
+                optimizer,
+                bce_loss,
+                source_label,
+                scaler,
+                args.cuda,
+                num_batches,
             )
-            
-            for param in model_D1.parameters():
-                param.requires_grad = True
-                
-             
-            source_pred = source_pred.detach()
-            D_out1 = model_D1(F.softmax(source_pred))
-            loss_D1 = bce_loss(D_out1,
-                              Variable(torch.FloatTensor(D_out1.data.size()).fill_(source_label)).cuda(args.gpu))
 
+            ## train discriminator
 
+            train_discriminator(
+                model_D1,
+                source_pred,
+                target_pred,
+                bce_loss,
+                num_batches,
+                source_label,
+                target_label,
+                args.cuda,
+            )
+
+        if epoch % args.checkpoint_step == 0 and epoch != 0:
+            if not os.path.isdir(args.save_model_path):
+                os.mkdir(args.save_model_path)
+                torch.save(
+                    model.module.state_dict(),
+                    os.path.join(args.save_model_path, "adversarial_latest.pth"),
+                )
+
+## CONTROLLARE GLI ZERO GRAD E DOVE METTERE OPTIMIZER.STEP E OPTIMIZER.UPDATE NELLE VARIE FUNZIONI (VEDERE TEMPLATE PAPER OPTIMIZER.STEP)
+## aggiungere CUDA
 if __name__ == "__main__":
 
     output_file = "output_gta5.txt"
