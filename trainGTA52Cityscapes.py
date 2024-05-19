@@ -27,10 +27,10 @@ def train_discriminator(
     source_pred,
     target_pred,
     bce_loss,
-    num_batches,
     source_label,
     target_label,
     cuda,
+    scaler
 ):
 
     for param in model_D1.parameters():
@@ -38,42 +38,30 @@ def train_discriminator(
 
     source_pred = source_pred.detach()
     D_out1 = model_D1(F.softmax(source_pred))
-    loss_D1 = bce_loss(
+    loss_D = bce_loss(
         D_out1,
         Variable(torch.FloatTensor(D_out1.data.size()).fill_(source_label)).cuda(cuda),
     )
 
-    loss_D1 = loss_D1 / num_batches / 2
+    loss_D = loss_D / 2
 
-    loss_D1.backward()
+    loss_D.backward()
 
     target_pred = target_pred.detach()
 
     D_out1 = model_D1(F.softmax(target_pred))
 
-    loss_D1 = bce_loss(
+    loss_D = bce_loss(
         D_out1,
         Variable(torch.FloatTensor(D_out1.data.size()).fill_(target_label)).cuda(cuda),
     )
 
-    loss_D1 = loss_D1 / num_batches / 2
+    loss_D = loss_D / 2
 
-    loss_D1.backward()
+    scaler.scale(loss_D).backward()
 
 
-def train_on_source(
-    args,
-    model,
-    optimizer,
-    model_D1,
-    trainloader_iter,
-    loss_func,
-    scaler,
-    tq,
-    writer,
-    loss_record,
-    epoch,
-):
+def train_on_source(trainloader_iter, model, model_D1, loss_func, scaler):
 
     for param in model_D1.parameters():
 
@@ -85,20 +73,15 @@ def train_on_source(
 
         data = data.cuda()
         label = label.long().cuda()
-        # OPTIMIZER.ZERO_GRAD() ????????? add only if validation is implemented here
 
         with amp.autocast():
             output, out16, out32 = model(data)
             loss1 = loss_func(output, label.squeeze(1))
             loss2 = loss_func(out16, label.squeeze(1))
             loss3 = loss_func(out32, label.squeeze(1))
-            loss = loss1 + loss2 + loss3
+            loss_seg = loss1 + loss2 + loss3
 
-        scaler.scale(loss).backward()
-        scaler.step(optimizer)  ## E' corretto fare l'update e lo step qui?
-        scaler.update()
-
-        step += 1
+        scaler.scale(loss_seg).backward()
 
     return output
 
@@ -106,13 +89,12 @@ def train_on_source(
 def train_on_target(
     targetloader_iter,
     model,
-    optimizer,
     model_D1,
     bce_loss,
     source_label,
     scaler,
     cuda,
-    num_batches,
+    lambda_adv,
 ):
     _, batch = targetloader_iter.next()
 
@@ -124,17 +106,15 @@ def train_on_target(
 
     D_out1 = model_D1(F.softmax(pred_target))
 
-    loss_adv_target1 = bce_loss(
+    loss_adv_target = bce_loss(
         D_out1,
         Variable(torch.FloatTensor(D_out1.data.size()).fill_(source_label)).cuda(cuda),
     )
 
-    loss = loss_adv_target1
+    loss_adv = loss_adv_target * lambda_adv
 
     ## E' corretto fare l'update e lo step qui?
-    scaler.scale(loss).backward()
-    scaler.step(optimizer)
-    scaler.update()
+    scaler.scale(loss_adv).backward()
 
     return pred_target
 
@@ -220,6 +200,9 @@ def parse_args():
         "--num_classes", type=int, default=19, help="num of object classes (with void)"
     )
     parse.add_argument(
+        "--lambda_adv", type=float, default=0.001, help="adversarial loss weight"
+    )
+    parse.add_argument(
         "--cuda", type=str, default="0", help="GPU ids used for training"
     )
     parse.add_argument(
@@ -292,6 +275,9 @@ def main():
         use_conv_last=args.use_conv_last,
     )
 
+    if torch.cuda.is_available() and args.use_gpu:
+        model = torch.nn.DataParallel(model).cuda()
+
     # Define discriminator function
     model_D1 = FCDiscriminator(num_classes=args.num_classes)
 
@@ -324,13 +310,9 @@ def main():
     source_label = 0  # GTA5
     target_label = 1  # Cityscapes
 
-    writer = SummaryWriter(comment="".format(args.optimizer))
-
     scaler = amp.GradScaler()
 
     loss_func = torch.nn.CrossEntropyLoss(ignore_index=255)
-    max_miou = 0
-    step = 0
 
     bce_loss = torch.nn.BCEWithLogitsLoss()
     # or bce_loss = torch.nn.MSELoss()
@@ -351,23 +333,14 @@ def main():
         model.train()
         tq = tqdm(total=len(trainloader) * args.batch_size)
         tq.set_description("Current epoch %d, lr %f, lr_D" % (epoch, lr, lr_D))
-        loss_record = []
 
         for _ in range(num_batches):
 
+            optimizer.zero_grad()
+            optimizer_D1.zero_grad()
             ## train on source
             source_pred = train_on_source(
-                args,
-                model,
-                optimizer,
-                model_D1,
-                trainloader_iter,
-                loss_func,
-                scaler,
-                tq,
-                writer,
-                loss_record,
-                epoch,
+                trainloader_iter, model, model_D1, loss_func, scaler
             )
 
             ## train on target
@@ -375,14 +348,12 @@ def main():
             target_pred = train_on_target(
                 targetloader_iter,
                 model,
-                optimizer,
                 model_D1,
-                optimizer,
                 bce_loss,
                 source_label,
                 scaler,
                 args.cuda,
-                num_batches,
+                args.lambda_adv,
             )
 
             ## train discriminator
@@ -392,11 +363,15 @@ def main():
                 source_pred,
                 target_pred,
                 bce_loss,
-                num_batches,
                 source_label,
                 target_label,
                 args.cuda,
+                scaler,
             )
+
+            scaler.step(optimizer)
+            scaler.step(optimizer_D1)
+            scaler.update()
 
         if epoch % args.checkpoint_step == 0 and epoch != 0:
             if not os.path.isdir(args.save_model_path):
@@ -405,6 +380,7 @@ def main():
                     model.module.state_dict(),
                     os.path.join(args.save_model_path, "adversarial_latest.pth"),
                 )
+
 
 ## CONTROLLARE GLI ZERO GRAD E DOVE METTERE OPTIMIZER.STEP E OPTIMIZER.UPDATE NELLE VARIE FUNZIONI (VEDERE TEMPLATE PAPER OPTIMIZER.STEP)
 ## aggiungere CUDA
