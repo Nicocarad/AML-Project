@@ -9,12 +9,24 @@ import numbers
 import torchvision
 
 
-def poly_lr_scheduler_D(optimizer, init_lr, i_iter, learning_rate_D=1e-4, num_steps=150000, power=0.9):
-    lr = learning_rate_D * ((1 - float(i_iter) / num_steps) ** (power))
-    optimizer.param_groups[0]['lr'] = lr
-    if len(optimizer.param_groups) > 1:
-        optimizer.param_groups[1]['lr'] = lr * 10
+def poly_lr_scheduler_D(
+    optimizer, init_lr, iter, lr_decay_iter=1, max_iter=300, power=0.9
+):
+    """Polynomial decay of learning rate
+    :param init_lr is base learning rate
+    :param iter is a current iteration
+    :param lr_decay_iter how frequently decay occurs, default is 1
+    :param max_iter is number of maximum iterations
+    :param power is a polymomial power
 
+    """
+    # if iter % lr_decay_iter or iter > max_iter:
+    # 	return optimizer
+
+    lr = init_lr * (1 - iter / max_iter) ** power
+    optimizer.param_groups[0]["lr"] = lr
+    if len(optimizer.param_groups) > 1:
+        optimizer.param_groups[1]["lr"] = lr * 10
     return lr
 
 
@@ -35,7 +47,6 @@ def poly_lr_scheduler(
     lr = init_lr * (1 - iter / max_iter) ** power
     optimizer.param_groups[0]["lr"] = lr
     return lr
-    # return lr
 
 
 def get_label_info(csv_path):

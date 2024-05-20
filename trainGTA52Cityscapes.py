@@ -1,13 +1,10 @@
 from GTA5 import GTA5
 from cityscapes import Cityscapes
 from model.model_stages import BiSeNet
-from cityscapes import CityScapes
 import torch
 from torch.utils.data import DataLoader
-import logging
 import argparse
 import numpy as np
-from tensorboardX import SummaryWriter
 import torch.cuda.amp as amp
 from utils import poly_lr_scheduler, poly_lr_scheduler_D
 from utils import reverse_one_hot, compute_global_accuracy, fast_hist, per_class_iu
@@ -20,6 +17,7 @@ import Subset
 import torch.nn.functional as F
 from torch.autograd import Variable
 import os
+import torch.backends.cudnn as cudnn
 
 
 def train_discriminator(
@@ -30,11 +28,8 @@ def train_discriminator(
     source_label,
     target_label,
     cuda,
-    scaler
+    scaler,
 ):
-
-    for param in model_D1.parameters():
-        param.requires_grad = True
 
     source_pred = source_pred.detach()
     D_out1 = model_D1(F.softmax(source_pred))
@@ -61,27 +56,24 @@ def train_discriminator(
     scaler.scale(loss_D).backward()
 
 
-def train_on_source(trainloader_iter, model, model_D1, loss_func, scaler):
+def train_on_source(trainloader_iter, model, loss_func, scaler):
 
-    for param in model_D1.parameters():
+    # train with source
+    _, batch = trainloader_iter.next()
 
-        param.requires_grad = False
+    data, label = batch
 
-        _, batch = trainloader_iter.next()
+    data = data.cuda()
+    label = label.long().cuda()
 
-        data, label = batch
+    with amp.autocast():
+        output, out16, out32 = model(data)
+        loss1 = loss_func(output, label.squeeze(1))
+        loss2 = loss_func(out16, label.squeeze(1))
+        loss3 = loss_func(out32, label.squeeze(1))
+        loss_seg = loss1 + loss2 + loss3
 
-        data = data.cuda()
-        label = label.long().cuda()
-
-        with amp.autocast():
-            output, out16, out32 = model(data)
-            loss1 = loss_func(output, label.squeeze(1))
-            loss2 = loss_func(out16, label.squeeze(1))
-            loss3 = loss_func(out32, label.squeeze(1))
-            loss_seg = loss1 + loss2 + loss3
-
-        scaler.scale(loss_seg).backward()
+    scaler.scale(loss_seg).backward()
 
     return output
 
@@ -113,7 +105,6 @@ def train_on_target(
 
     loss_adv = loss_adv_target * lambda_adv
 
-    ## E' corretto fare l'update e lo step qui?
     scaler.scale(loss_adv).backward()
 
     return pred_target
@@ -193,7 +184,16 @@ def parse_args():
         "--batch_size", type=int, default=8, help="Number of images in each batch"
     )
     parse.add_argument(
-        "--learning_rate", type=float, default=0.01, help="learning rate used for train"
+        "--learning_rate",
+        type=float,
+        default=0.01,
+        help="learning rate used for train",
+    )
+    parse.add_argument(
+        "--learning_rate_D",
+        type=float,
+        default=1e-4,
+        help="learning rate used for train discriminator",
     )
     parse.add_argument("--num_workers", type=int, default=2, help="num of workers")
     parse.add_argument(
@@ -225,90 +225,24 @@ def parse_args():
     return parse.parse_args()
 
 
-def main():
-    args = parse_args()
+def train(
+    args,
+    num_batches,
+    model,
+    model_D1,
+    optimizer,
+    optimizer_D1,
+    trainloader,
+    trainloader_iter,
+    targetloader_iter,
+    source_label,
+    target_label,
+):
 
-    n_classes = args.num_classes
-
-    mode = args.mode
-
-    # Load train (target) dataset -> Cityscapes
-    target_dataset = Cityscapes(
-        "/content/Cityscapes/Cityscapes/Cityspaces", mode="train"
-    )
-    # Load test (source) dataset -> GTA5
-    train_dataset = GTA5("/content/GTA5/GTA5/GTA5", mode="train", apply_transform=False)
-
-    # Reduce GTA5 dataset to the same size of Cityscapes dataset
-    target_size = len(target_dataset)
-    train_subset = Subset(train_dataset, indices=range(target_size))
-
-    num_batches = len(train_subset) // args.batch_size
-
-    # Crea i DataLoader
-    targetloader = DataLoader(
-        target_dataset,
-        batch_size=args.batch_size,
-        shuffle=False,
-        num_workers=args.num_workers,
-        pin_memory=False,
-        drop_last=True,
-    )
-
-    trainloader = DataLoader(
-        train_subset,
-        batch_size=args.batch_size,
-        shuffle=False,
-        num_workers=args.num_workers,
-        pin_memory=False,
-        drop_last=True,
-    )
-
-    trainloader_iter = enumerate(trainloader)
-    targetloader_iter = enumerate(targetloader)
-
-    # Define the model --> BiSeNet
-    model = BiSeNet(
-        backbone=args.backbone,
-        n_classes=n_classes,
-        pretrain_model=args.pretrain_path,
-        use_conv_last=args.use_conv_last,
-    )
-
-    if torch.cuda.is_available() and args.use_gpu:
-        model = torch.nn.DataParallel(model).cuda()
-
-    # Define discriminator function
-    model_D1 = FCDiscriminator(num_classes=args.num_classes)
-
+    model.train()
+    model.cuda(args.cuda)
     model_D1.train()
     model_D1.cuda(args.cuda)
-
-    # Define optimizer for Discriminator function
-    optimizer_D1 = optim.Adam(
-        model_D1.parameters(), lr=args.learning_rate_D, betas=(0.9, 0.99)
-    )
-    optimizer_D1.zero_grad()
-
-    # Define optimizer for model
-    if args.optimizer == "rmsprop":
-        optimizer = torch.optim.RMSprop(model.parameters(), args.learning_rate)
-    elif args.optimizer == "sgd":
-        optimizer = torch.optim.SGD(
-            model.parameters(), args.learning_rate, momentum=0.9, weight_decay=1e-4
-        )
-    elif args.optimizer == "adam":
-        optimizer = torch.optim.Adam(model.parameters(), args.learning_rate)
-    else:  # rmsprop
-        print("not supported optimizer \n")
-        return None
-
-    # interp = nn.Upsample(size=(input_size[1], input_size[0]), mode='bilinear')
-    # interp_target = nn.Upsample(size=(input_size_target[1], input_size_target[0]), mode='bilinear')
-
-    # labels for adversarial training
-    source_label = 0  # GTA5
-    target_label = 1  # Cityscapes
 
     scaler = amp.GradScaler()
 
@@ -324,13 +258,9 @@ def main():
             optimizer, args.learning_rate, iter=epoch, max_iter=args.num_epochs
         )
         lr_D = poly_lr_scheduler_D(
-            optimizer_D1, args.learning_rate, iter=epoch, max_iter=args.num_epochs
+            optimizer_D1, args.learning_rate_D, iter=epoch, max_iter=args.num_epochs
         )
 
-        optimizer.zero_grad()
-        optimizer_D1.zero_grad()
-
-        model.train()
         tq = tqdm(total=len(trainloader) * args.batch_size)
         tq.set_description("Current epoch %d, lr %f, lr_D" % (epoch, lr, lr_D))
 
@@ -338,10 +268,13 @@ def main():
 
             optimizer.zero_grad()
             optimizer_D1.zero_grad()
+
+            # don't accumulate grads in D
+            for param in model_D1.parameters():
+                param.requires_grad = False
+
             ## train on source
-            source_pred = train_on_source(
-                trainloader_iter, model, model_D1, loss_func, scaler
-            )
+            source_pred = train_on_source(trainloader_iter, model, loss_func, scaler)
 
             ## train on target
 
@@ -355,6 +288,10 @@ def main():
                 args.cuda,
                 args.lambda_adv,
             )
+
+            # bring back requires_grad
+            for param in model_D1.parameters():
+                param.requires_grad = True
 
             ## train discriminator
 
@@ -382,11 +319,164 @@ def main():
                 )
 
 
-## CONTROLLARE GLI ZERO GRAD E DOVE METTERE OPTIMIZER.STEP E OPTIMIZER.UPDATE NELLE VARIE FUNZIONI (VEDERE TEMPLATE PAPER OPTIMIZER.STEP)
-## aggiungere CUDA
+def val(model, dataloader, args):
+
+    print("start val!")
+    with torch.no_grad():
+        model.eval()
+        precision_record = []
+        hist = np.zeros((args.num_classes, args.num_classes))
+
+        for i, (data, label) in enumerate(tqdm(dataloader)):
+            label = label.type(torch.LongTensor)
+            data = data.cuda()
+            label = label.long().cuda()
+
+            # get RGB predict image
+            predict, _, _ = model(data)
+            predict = predict.squeeze(0)
+            predict = reverse_one_hot(predict)
+            predict = np.array(predict.cpu())
+
+            # get RGB label image
+            label = label.squeeze()
+            label = np.array(label.cpu())
+
+            # compute per pixel accuracy
+            precision = compute_global_accuracy(predict, label)
+            hist += fast_hist(label.flatten(), predict.flatten(), args.num_classes)
+
+            precision_record.append(precision)
+
+        precision = np.mean(precision_record)
+        miou_list = per_class_iu(hist)
+        miou = np.mean(miou_list)
+        print("precision per pixel for test: %.3f" % precision)
+        print("mIoU for validation: %.3f" % miou)
+        print(f"mIoU per class: {miou_list}")
+
+        return precision, miou
+
+
+def main():
+    args = parse_args()
+
+    n_classes = args.num_classes
+
+    cudnn.enabled = True
+
+    # Load train (target) dataset -> Cityscapes
+    traintarget_dataset = Cityscapes(
+        "/content/Cityscapes/Cityscapes/Cityspaces", mode="train"
+    )
+    # Load test (source) dataset -> GTA5
+    trainsource_dataset = GTA5(
+        "/content/GTA5/GTA5/GTA5", mode="train", apply_transform=False
+    )
+
+    test_dataset = Cityscapes("/content/Cityscapes/Cityscapes/Cityspaces", mode="val")
+
+    # Reduce GTA5 dataset to the same size of Cityscapes dataset
+    target_size = len(traintarget_dataset)
+    train_subset = Subset(trainsource_dataset, indices=range(target_size))
+
+    num_batches = len(train_subset) // args.batch_size
+
+    # Crea i DataLoader
+    targetloader = DataLoader(
+        traintarget_dataset,
+        batch_size=args.batch_size,
+        shuffle=False,
+        num_workers=args.num_workers,
+        pin_memory=True,  ## remove if crash for memory problems
+        drop_last=True,
+    )
+
+    trainloader = DataLoader(
+        train_subset,
+        batch_size=args.batch_size,
+        shuffle=False,
+        num_workers=args.num_workers,
+        pin_memory=True,
+        drop_last=True,
+    )
+
+    testloader = DataLoader(
+        test_dataset,
+        batch_size=1,
+        shuffle=False,
+        num_workers=args.num_workers,
+        pin_memory=True,
+        drop_last=False,
+    )
+
+    trainloader_iter = enumerate(trainloader)
+    targetloader_iter = enumerate(targetloader)
+
+    # Define the model --> BiSeNet
+    model = BiSeNet(
+        backbone=args.backbone,
+        n_classes=n_classes,
+        pretrain_model=args.pretrain_path,
+        use_conv_last=args.use_conv_last,
+    )
+
+    if torch.cuda.is_available() and args.use_gpu:
+        model = torch.nn.DataParallel(model).cuda()
+
+    cudnn.benchmark = True
+
+    # Define discriminator function
+    model_D1 = FCDiscriminator(num_classes=args.num_classes)
+
+    # Define optimizer for Discriminator function
+    optimizer_D1 = optim.Adam(
+        model_D1.parameters(), lr=args.learning_rate_D, betas=(0.9, 0.99)
+    )
+    optimizer_D1.zero_grad()
+
+    # Define optimizer for model
+    if args.optimizer == "rmsprop":
+        optimizer = torch.optim.RMSprop(model.parameters(), args.learning_rate)
+    elif args.optimizer == "sgd":
+        optimizer = torch.optim.SGD(
+            model.parameters(), args.learning_rate, momentum=0.9, weight_decay=1e-4
+        )
+    elif args.optimizer == "adam":
+        optimizer = torch.optim.Adam(model.parameters(), args.learning_rate)
+    else:  # rmsprop
+        print("not supported optimizer \n")
+        return None
+
+    optimizer.zero_grad()
+
+    # interp = nn.Upsample(size=(input_size[1], input_size[0]), mode='bilinear')
+    # interp_target = nn.Upsample(size=(input_size_target[1], input_size_target[0]), mode='bilinear')
+
+    # labels for adversarial training
+    source_label = 0  # GTA5
+    target_label = 1  # Cityscapes
+
+    train(
+        args,
+        num_batches,
+        model,
+        model_D1,
+        optimizer,
+        optimizer_D1,
+        trainloader,
+        trainloader_iter,
+        targetloader_iter,
+        source_label,
+        target_label,
+    )
+
+    val(model, testloader, args)
+
+
 if __name__ == "__main__":
 
-    output_file = "output_gta5.txt"
+    output_file = "output_gta5_cityscapes_adversarial.txt"
     with open(output_file, "w") as f:
 
         sys.stdout = f
