@@ -1,3 +1,4 @@
+from comet_ml import Experiment
 from GTA5 import GTA5
 from cityscapes import Cityscapes
 from model.model_stages import BiSeNet
@@ -17,7 +18,7 @@ from torch.autograd import Variable
 import os
 import torch.backends.cudnn as cudnn
 import json
-from comet_ml import Experiment
+
 
 
 # Crea un esperimento Comet.ml
@@ -63,7 +64,7 @@ def train_discriminator(
 def train_on_source(trainloader_iter, model, loss_func, scaler):
 
     # train with source
-    _, batch = trainloader_iter.next()
+    _, batch = next(trainloader_iter)
 
     data, label = batch
 
@@ -92,7 +93,7 @@ def train_on_target(
     cuda,
     lambda_adv,
 ):
-    _, batch = targetloader_iter.next()
+    _, batch = next(targetloader_iter)
 
     data, _ = batch
     data = data.cuda()
@@ -256,6 +257,9 @@ def train(
     # or bce_loss = torch.nn.MSELoss()
 
     for epoch in range(args.num_epochs):
+        
+        tq = tqdm(total=args.num_epochs)
+        tq.set_description(f"Current epoch {epoch}")
 
         # Learning rate adaptation
         lr = poly_lr_scheduler(
@@ -265,8 +269,8 @@ def train(
             optimizer_D1, args.learning_rate_D, iter=epoch, max_iter=args.num_epochs
         )
 
-        tq = tqdm(total=len(trainloader) * args.batch_size)
-        tq.set_description("Current epoch %d, lr %f, lr_D %f" % (epoch, lr, lr_D))
+        # tq = tqdm(total=len(trainloader) * args.batch_size)
+        # tq.set_description("Current epoch %d, lr %f, lr_D %f" % (epoch, lr, lr_D))
 
         for _ in range(num_batches):
 
@@ -313,8 +317,9 @@ def train(
             scaler.step(optimizer)
             scaler.step(optimizer_D1)
             scaler.update()
-            tq.update(args.batch_size)
-
+            # tq.update(args.batch_size)
+            tq.update()
+            
         if epoch % args.checkpoint_step == 0 and epoch != 0:
             if not os.path.isdir(args.save_model_path):
                 os.mkdir(args.save_model_path)
@@ -322,7 +327,8 @@ def train(
                     model.module.state_dict(),
                     os.path.join(args.save_model_path, "adversarial_latest.pth"),
                 )
-
+                
+        tq.close()
 
 def val(model, dataloader, args):
 
@@ -434,6 +440,8 @@ def main():
 
     # Define discriminator function
     model_D1 = FCDiscriminator(num_classes=args.num_classes)
+    
+    model_D1 = model_D1.half() # convert the model to half precision since the output from the model is half precision
 
     if torch.cuda.is_available() and args.use_gpu:
         model = torch.nn.DataParallel(model).cuda()
