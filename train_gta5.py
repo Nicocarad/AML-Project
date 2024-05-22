@@ -40,8 +40,12 @@ def val(args, model, dataloader):
 
             # get RGB predict image
             predict, _, _ = model(data)
+            print("Predict",predict)
+            print(predict.shape)
             predict = predict.squeeze(0)
+            print("Predict after squeeze",predict)
             predict = reverse_one_hot(predict)
+            print("Predict after reverse_one_hot",predict)
             predict = np.array(predict.cpu())
 
             # get RGB label image

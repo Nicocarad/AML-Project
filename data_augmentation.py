@@ -19,6 +19,6 @@ class DataAugmentation:
 
     def Colortransform(self, image):
 
-        image = self.hue_t(image)
-        image = self.gs_t(image)
+        # image = self.hue_t(image)
+        # image = self.gs_t(image)
         return self.color_jitter(image)

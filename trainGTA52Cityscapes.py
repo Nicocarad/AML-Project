@@ -309,6 +309,7 @@ def train(
             scaler.step(optimizer)
             scaler.step(optimizer_D1)
             scaler.update()
+            tq.update(args.batch_size)
 
         if epoch % args.checkpoint_step == 0 and epoch != 0:
             if not os.path.isdir(args.save_model_path):
