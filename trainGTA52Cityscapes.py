@@ -2,7 +2,7 @@ from GTA5 import GTA5
 from cityscapes import Cityscapes
 from model.model_stages import BiSeNet
 import torch
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Subset
 import argparse
 import numpy as np
 import torch.cuda.amp as amp
@@ -12,8 +12,6 @@ from tqdm import tqdm
 import sys
 from model.discriminator import FCDiscriminator
 import torch.optim as optim
-import ConcatDataset
-import Subset
 import torch.nn.functional as F
 from torch.autograd import Variable
 import os
@@ -368,6 +366,8 @@ def val(model, dataloader, args):
 
 
 def main():
+    
+    print("Start running")
     args = parse_args()
     experiment.log_parameters(vars(args))
     n_classes = args.num_classes
@@ -376,14 +376,14 @@ def main():
 
     # Load train (target) dataset -> Cityscapes
     traintarget_dataset = Cityscapes(
-        "/content/Cityscapes/Cityscapes/Cityspaces", mode="train"
+        "./Cityscapes", mode="train"
     )
     # Load test (source) dataset -> GTA5
     trainsource_dataset = GTA5(
-        "/content/GTA5/GTA5/GTA5", mode="train", apply_transform=False
+        "./GTA5", mode="train", apply_transform=False
     )
 
-    test_dataset = Cityscapes("/content/Cityscapes/Cityscapes/Cityspaces", mode="val")
+    test_dataset = Cityscapes("./Cityscapes", mode="val")
 
     # Reduce GTA5 dataset to the same size of Cityscapes dataset
     target_size = len(traintarget_dataset)
