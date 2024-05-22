@@ -299,6 +299,7 @@ def main():
 
     if torch.cuda.is_available() and args.use_gpu:
         model = torch.nn.DataParallel(model).cuda()
+        
 
     ## optimizer
     # build optimizer

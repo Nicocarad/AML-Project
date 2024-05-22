@@ -16,8 +16,8 @@ import torch.nn.functional as F
 from torch.autograd import Variable
 import os
 import torch.backends.cudnn as cudnn
+import json
 from comet_ml import Experiment
-
 
 
 # Crea un esperimento Comet.ml
@@ -244,7 +244,7 @@ def train(
 ):
 
     model.train()
-    model.cuda(args.cuda)
+    # model.cuda(args.cuda)
     model_D1.train()
     model_D1.cuda(args.cuda)
 
@@ -366,25 +366,26 @@ def val(model, dataloader, args):
 
 
 def main():
-    
+
     print("Start running")
     args = parse_args()
     experiment.log_parameters(vars(args))
     n_classes = args.num_classes
 
+    with open("./GTA5_info.json", "r") as fr:
+        labels_info = json.load(fr)
+
     cudnn.enabled = True
     print("Loading data...")
     # Load train (target) dataset -> Cityscapes
-    traintarget_dataset = Cityscapes(
-        "./Cityscapes", mode="train"
-    )
+    traintarget_dataset = Cityscapes("./Cityscapes", mode="train")
     # Load test (source) dataset -> GTA5
     trainsource_dataset = GTA5(
-        "./GTA5", mode="train", apply_transform=False
+        "./GTA5", labels_info=labels_info, mode="train", apply_transform=False
     )
 
     test_dataset = Cityscapes("./Cityscapes", mode="val")
-    
+
     print("Data loaded")
     # Reduce GTA5 dataset to the same size of Cityscapes dataset
     target_size = len(traintarget_dataset)
@@ -431,13 +432,14 @@ def main():
         use_conv_last=args.use_conv_last,
     )
 
-    if torch.cuda.is_available() and args.use_gpu:
-        model = torch.nn.DataParallel(model).cuda()
-
-    cudnn.benchmark = True
-
     # Define discriminator function
     model_D1 = FCDiscriminator(num_classes=args.num_classes)
+
+    if torch.cuda.is_available() and args.use_gpu:
+        model = torch.nn.DataParallel(model).cuda()
+        model_D1 = torch.nn.DataParallel(model_D1).cuda()
+
+    cudnn.benchmark = True
 
     # Define optimizer for Discriminator function
     optimizer_D1 = optim.Adam(
