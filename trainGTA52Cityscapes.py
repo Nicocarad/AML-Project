@@ -18,6 +18,12 @@ import torch.nn.functional as F
 from torch.autograd import Variable
 import os
 import torch.backends.cudnn as cudnn
+from comet_ml import Experiment
+
+
+
+# Crea un esperimento Comet.ml
+experiment = Experiment(api_key="knoxznRgLLK2INEJ9GIbmR7ww", project_name="AML_project")
 
 
 def train_discriminator(
@@ -355,13 +361,15 @@ def val(model, dataloader, args):
         print("precision per pixel for test: %.3f" % precision)
         print("mIoU for validation: %.3f" % miou)
         print(f"mIoU per class: {miou_list}")
+        experiment.log_metric("precision", precision)
+        experiment.log_metric("miou", miou)
 
         return precision, miou
 
 
 def main():
     args = parse_args()
-
+    experiment.log_parameters(vars(args))
     n_classes = args.num_classes
 
     cudnn.enabled = True
@@ -473,6 +481,7 @@ def main():
     )
 
     val(model, testloader, args)
+    experiment.end()
 
 
 if __name__ == "__main__":
