@@ -246,7 +246,7 @@ def train(
     model.train()
     # model.cuda(args.cuda)
     model_D1.train()
-    model_D1.cuda(args.cuda)
+    # model_D1.cuda(args.cuda)
 
     scaler = amp.GradScaler()
 
@@ -266,7 +266,7 @@ def train(
         )
 
         tq = tqdm(total=len(trainloader) * args.batch_size)
-        tq.set_description("Current epoch %d, lr %f, lr_D" % (epoch, lr, lr_D))
+        tq.set_description("Current epoch %d, lr %f, lr_D %f" % (epoch, lr, lr_D))
 
         for _ in range(num_batches):
 
