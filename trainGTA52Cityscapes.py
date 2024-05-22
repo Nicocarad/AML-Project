@@ -40,7 +40,7 @@ def train_discriminator(
     D_out1 = model_D1(F.softmax(source_pred))
     loss_D = bce_loss(
         D_out1,
-        Variable(torch.FloatTensor(D_out1.data.size()).fill_(source_label)).cuda(cuda),
+        Variable(torch.FloatTensor(D_out1.data.size()).fill_(source_label)).cuda(),
     )
 
     loss_D = loss_D / 2
@@ -53,7 +53,7 @@ def train_discriminator(
 
     loss_D = bce_loss(
         D_out1,
-        Variable(torch.FloatTensor(D_out1.data.size()).fill_(target_label)).cuda(cuda),
+        Variable(torch.FloatTensor(D_out1.data.size()).fill_(target_label)).cuda(),
     )
 
     loss_D = loss_D / 2
@@ -105,7 +105,7 @@ def train_on_target(
 
     loss_adv_target = bce_loss(
         D_out1,
-        Variable(torch.FloatTensor(D_out1.data.size()).fill_(source_label)).cuda(cuda),
+        Variable(torch.FloatTensor(D_out1.data.size()).fill_(source_label)).cuda(),
     )
 
     loss_adv = loss_adv_target * lambda_adv
