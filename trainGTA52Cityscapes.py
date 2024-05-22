@@ -373,7 +373,7 @@ def main():
     n_classes = args.num_classes
 
     cudnn.enabled = True
-
+    print("Loading data...")
     # Load train (target) dataset -> Cityscapes
     traintarget_dataset = Cityscapes(
         "./Cityscapes", mode="train"
@@ -384,7 +384,8 @@ def main():
     )
 
     test_dataset = Cityscapes("./Cityscapes", mode="val")
-
+    
+    print("Data loaded")
     # Reduce GTA5 dataset to the same size of Cityscapes dataset
     target_size = len(traintarget_dataset)
     train_subset = Subset(trainsource_dataset, indices=range(target_size))
