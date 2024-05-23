@@ -36,8 +36,8 @@ def train_discriminator(
     scaler,
 ):
 
-    source_pred = source_pred.detach()
-    D_out1 = model_D1(F.softmax(source_pred))
+    source_pred = source_pred.detach().float()
+    D_out1 = model_D1(F.softmax(source_pred,dim=1))
     loss_D = bce_loss(
         D_out1,
         Variable(torch.FloatTensor(D_out1.data.size()).fill_(source_label)).cuda(),
@@ -47,9 +47,11 @@ def train_discriminator(
 
     loss_D.backward()
 
-    target_pred = target_pred.detach()
+    target_pred = target_pred.detach().float()
+    
+    print(target_pred.shape)
 
-    D_out1 = model_D1(F.softmax(target_pred))
+    D_out1 = model_D1(F.softmax(target_pred,dim=1))
 
     loss_D = bce_loss(
         D_out1,
@@ -101,7 +103,7 @@ def train_on_target(
     with amp.autocast():
         pred_target, _, _ = model(data)
 
-    D_out1 = model_D1(F.softmax(pred_target))
+    D_out1 = model_D1(F.softmax(pred_target, dim=1))
 
     loss_adv_target = bce_loss(
         D_out1,
@@ -441,7 +443,7 @@ def main():
     # Define discriminator function
     model_D1 = FCDiscriminator(num_classes=args.num_classes)
     
-    model_D1 = model_D1.half() # convert the model to half precision since the output from the model is half precision
+    model_D1 = model_D1.float() # convert the model to half precision since the output from the model is half precision
 
     if torch.cuda.is_available() and args.use_gpu:
         model = torch.nn.DataParallel(model).cuda()
