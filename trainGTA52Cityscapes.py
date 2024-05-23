@@ -20,101 +20,8 @@ import torch.backends.cudnn as cudnn
 import json
 
 
-
 # Crea un esperimento Comet.ml
 experiment = Experiment(api_key="knoxznRgLLK2INEJ9GIbmR7ww", project_name="AML_project")
-
-
-def train_discriminator(
-    model_D1,
-    source_pred,
-    target_pred,
-    bce_loss,
-    source_label,
-    target_label,
-    cuda,
-    scaler,
-):
-
-    source_pred = source_pred.detach().float()
-    D_out1 = model_D1(F.softmax(source_pred,dim=1))
-    loss_D = bce_loss(
-        D_out1,
-        Variable(torch.FloatTensor(D_out1.data.size()).fill_(source_label)).cuda(),
-    )
-
-    loss_D = loss_D / 2
-
-    loss_D.backward()
-
-    target_pred = target_pred.detach().float()
-    
-    print(target_pred.shape)
-
-    D_out1 = model_D1(F.softmax(target_pred,dim=1))
-
-    loss_D = bce_loss(
-        D_out1,
-        Variable(torch.FloatTensor(D_out1.data.size()).fill_(target_label)).cuda(),
-    )
-
-    loss_D = loss_D / 2
-
-    scaler.scale(loss_D).backward()
-
-
-def train_on_source(trainloader_iter, model, loss_func, scaler):
-
-    # train with source
-    _, batch = next(trainloader_iter)
-
-    data, label = batch
-
-    data = data.cuda()
-    label = label.long().cuda()
-
-    with amp.autocast():
-        output, out16, out32 = model(data)
-        loss1 = loss_func(output, label.squeeze(1))
-        loss2 = loss_func(out16, label.squeeze(1))
-        loss3 = loss_func(out32, label.squeeze(1))
-        loss_seg = loss1 + loss2 + loss3
-
-    scaler.scale(loss_seg).backward()
-
-    return output
-
-
-def train_on_target(
-    targetloader_iter,
-    model,
-    model_D1,
-    bce_loss,
-    source_label,
-    scaler,
-    cuda,
-    lambda_adv,
-):
-    _, batch = next(targetloader_iter)
-
-    data, _ = batch
-    data = data.cuda()
-
-    with amp.autocast():
-        pred_target, _, _ = model(data)
-
-    D_out1 = model_D1(F.softmax(pred_target, dim=1))
-
-    loss_adv_target = bce_loss(
-        D_out1,
-        Variable(torch.FloatTensor(D_out1.data.size()).fill_(source_label)).cuda(),
-    )
-
-    loss_adv = loss_adv_target * lambda_adv
-
-    scaler.scale(loss_adv).backward()
-
-    return pred_target
 
 
 def str2bool(v):
@@ -232,6 +139,97 @@ def parse_args():
     return parse.parse_args()
 
 
+def train_discriminator(
+    model_D1,
+    source_pred,
+    target_pred,
+    bce_loss,
+    source_label,
+    target_label,
+    cuda,
+    scaler,
+):
+
+    source_pred = source_pred.detach().float()
+    D_out1 = model_D1(F.softmax(source_pred, dim=1))
+    loss_D = bce_loss(
+        D_out1,
+        Variable(torch.FloatTensor(D_out1.data.size()).fill_(source_label)).cuda(),
+    )
+
+    loss_D = loss_D / 2
+
+    loss_D.backward()
+
+    target_pred = target_pred.detach().float()
+
+    D_out1 = model_D1(F.softmax(target_pred, dim=1))
+
+    loss_D = bce_loss(
+        D_out1,
+        Variable(torch.FloatTensor(D_out1.data.size()).fill_(target_label)).cuda(),
+    )
+
+    loss_D = loss_D / 2
+
+    scaler.scale(loss_D).backward()
+
+
+def train_on_source(trainloader_iter, model, loss_func, scaler):
+
+    # train with source
+    _, batch = next(trainloader_iter)
+
+    data, label = batch
+
+    data = data.cuda()
+    label = label.long().cuda()
+
+    with amp.autocast():
+        output, out16, out32 = model(data)
+        loss1 = loss_func(output, label.squeeze(1))
+        loss2 = loss_func(out16, label.squeeze(1))
+        loss3 = loss_func(out32, label.squeeze(1))
+        loss_seg = loss1 + loss2 + loss3
+
+    scaler.scale(loss_seg).backward()
+
+    return output
+
+
+def train_on_target(
+    targetloader_iter,
+    model,
+    model_D1,
+    bce_loss,
+    source_label,
+    scaler,
+    cuda,
+    lambda_adv,
+):
+    _, batch = next(targetloader_iter)
+
+    data, _ = batch
+    data = data.cuda()
+
+    with amp.autocast():
+        pred_target, _, _ = model(data)
+
+    pred_target = pred_target.to(model_D1.module.conv1.bias.dtype)
+    D_out1 = model_D1(F.softmax(pred_target, dim=1))
+
+    loss_adv_target = bce_loss(
+        D_out1,
+        Variable(torch.FloatTensor(D_out1.data.size()).fill_(source_label)).cuda(),
+    )
+
+    loss_adv = loss_adv_target * lambda_adv
+
+    scaler.scale(loss_adv).backward()
+
+    return pred_target
+
+
 def train(
     args,
     num_batches,
@@ -259,69 +257,68 @@ def train(
     # or bce_loss = torch.nn.MSELoss()
 
     for epoch in range(args.num_epochs):
-        
-        tq = tqdm(total=args.num_epochs)
-        tq.set_description(f"Current epoch {epoch}")
 
         # Learning rate adaptation
-        lr = poly_lr_scheduler(
+        poly_lr_scheduler(
             optimizer, args.learning_rate, iter=epoch, max_iter=args.num_epochs
         )
-        lr_D = poly_lr_scheduler_D(
+        poly_lr_scheduler_D(
             optimizer_D1, args.learning_rate_D, iter=epoch, max_iter=args.num_epochs
         )
 
         # tq = tqdm(total=len(trainloader) * args.batch_size)
         # tq.set_description("Current epoch %d, lr %f, lr_D %f" % (epoch, lr, lr_D))
+        with tqdm(total=num_batches, desc=f"Epoca {epoch+1}", unit="batch") as pbar:
+            for _ in range(num_batches):
 
-        for _ in range(num_batches):
+                optimizer.zero_grad()
+                optimizer_D1.zero_grad()
 
-            optimizer.zero_grad()
-            optimizer_D1.zero_grad()
+                # don't accumulate grads in D
+                for param in model_D1.parameters():
+                    param.requires_grad = False
 
-            # don't accumulate grads in D
-            for param in model_D1.parameters():
-                param.requires_grad = False
+                ## train on source
+                source_pred = train_on_source(
+                    trainloader_iter, model, loss_func, scaler
+                )
 
-            ## train on source
-            source_pred = train_on_source(trainloader_iter, model, loss_func, scaler)
+                ## train on target
 
-            ## train on target
+                target_pred = train_on_target(
+                    targetloader_iter,
+                    model,
+                    model_D1,
+                    bce_loss,
+                    source_label,
+                    scaler,
+                    args.cuda,
+                    args.lambda_adv,
+                )
 
-            target_pred = train_on_target(
-                targetloader_iter,
-                model,
-                model_D1,
-                bce_loss,
-                source_label,
-                scaler,
-                args.cuda,
-                args.lambda_adv,
-            )
+                # bring back requires_grad
+                for param in model_D1.parameters():
+                    param.requires_grad = True
 
-            # bring back requires_grad
-            for param in model_D1.parameters():
-                param.requires_grad = True
+                ## train discriminator
 
-            ## train discriminator
+                train_discriminator(
+                    model_D1,
+                    source_pred,
+                    target_pred,
+                    bce_loss,
+                    source_label,
+                    target_label,
+                    args.cuda,
+                    scaler,
+                )
 
-            train_discriminator(
-                model_D1,
-                source_pred,
-                target_pred,
-                bce_loss,
-                source_label,
-                target_label,
-                args.cuda,
-                scaler,
-            )
+                scaler.step(optimizer)
+                scaler.step(optimizer_D1)
+                scaler.update()
 
-            scaler.step(optimizer)
-            scaler.step(optimizer_D1)
-            scaler.update()
-            # tq.update(args.batch_size)
-            tq.update()
-            
+                pbar.update()
+
         if epoch % args.checkpoint_step == 0 and epoch != 0:
             if not os.path.isdir(args.save_model_path):
                 os.mkdir(args.save_model_path)
@@ -329,8 +326,7 @@ def train(
                     model.module.state_dict(),
                     os.path.join(args.save_model_path, "adversarial_latest.pth"),
                 )
-                
-        tq.close()
+
 
 def val(model, dataloader, args):
 
@@ -387,12 +383,13 @@ def main():
     print("Loading data...")
     # Load train (target) dataset -> Cityscapes
     traintarget_dataset = Cityscapes("./Cityscapes", mode="train")
+
     # Load test (source) dataset -> GTA5
     trainsource_dataset = GTA5(
         "./GTA5", labels_info=labels_info, mode="train", apply_transform=False
     )
 
-    test_dataset = Cityscapes("./Cityscapes", mode="val")
+    test_dataset = Cityscapes("./Cityspaces", mode="val")
 
     print("Data loaded")
     # Reduce GTA5 dataset to the same size of Cityscapes dataset
@@ -442,8 +439,10 @@ def main():
 
     # Define discriminator function
     model_D1 = FCDiscriminator(num_classes=args.num_classes)
-    
-    model_D1 = model_D1.float() # convert the model to half precision since the output from the model is half precision
+
+    model_D1 = (
+        model_D1.float()
+    )  # convert the model to half precision since the output from the model is half precision
 
     if torch.cuda.is_available() and args.use_gpu:
         model = torch.nn.DataParallel(model).cuda()
