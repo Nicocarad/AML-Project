@@ -119,7 +119,7 @@ if __name__ == "__main__":
     with open("./GTA5_info.json", "r") as fr:
         labels_info = json.load(fr)
     print("Load dataset")
-    ds = GTA5("./GTA5", labels_info, mode="val", apply_transform=True)
+    ds = GTA5("./GTA5", labels_info, mode="train", apply_transform=True)
     uni = []
     for im, lb in tqdm(ds):
         lb_uni = np.unique(lb).tolist()

@@ -238,10 +238,11 @@ def train(
     optimizer,
     optimizer_D1,
     trainloader,
+    targetloader,
     trainloader_iter,
     targetloader_iter,
     source_label,
-    target_label,
+    target_label
 ):
 
     model.train()
@@ -318,7 +319,10 @@ def train(
                 scaler.update()
 
                 pbar.update()
-
+                
+            trainloader_iter = iter(trainloader)
+            targetloader_iter = iter(targetloader)
+            
         if epoch % args.checkpoint_step == 0 and epoch != 0:
             if not os.path.isdir(args.save_model_path):
                 os.mkdir(args.save_model_path)
@@ -389,7 +393,7 @@ def main():
         "./GTA5", labels_info=labels_info, mode="train", apply_transform=False
     )
 
-    test_dataset = Cityscapes("./Cityspaces", mode="val")
+    test_dataset = Cityscapes("./Cityscapes", mode="val")
 
     print("Data loaded")
     # Reduce GTA5 dataset to the same size of Cityscapes dataset
@@ -426,8 +430,8 @@ def main():
         drop_last=False,
     )
 
-    trainloader_iter = enumerate(trainloader)
-    targetloader_iter = enumerate(targetloader)
+    trainloader_iter = iter(trainloader)
+    targetloader_iter = iter(targetloader)
 
     # Define the model --> BiSeNet
     model = BiSeNet(
@@ -486,6 +490,7 @@ def main():
         optimizer,
         optimizer_D1,
         trainloader,
+        targetloader,
         trainloader_iter,
         targetloader_iter,
         source_label,
