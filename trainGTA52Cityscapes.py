@@ -320,8 +320,8 @@ def train(
 
                 pbar.update()
                 
-            trainloader_iter = iter(trainloader)
-            targetloader_iter = iter(targetloader)
+            trainloader_iter = enumerate(trainloader)
+            targetloader_iter = enumerate(targetloader)
             
         if epoch % args.checkpoint_step == 0 and epoch != 0:
             if not os.path.isdir(args.save_model_path):
@@ -430,8 +430,8 @@ def main():
         drop_last=False,
     )
 
-    trainloader_iter = iter(trainloader)
-    targetloader_iter = iter(targetloader)
+    trainloader_iter = enumerate(trainloader)
+    targetloader_iter = enumerate(targetloader)
 
     # Define the model --> BiSeNet
     model = BiSeNet(
