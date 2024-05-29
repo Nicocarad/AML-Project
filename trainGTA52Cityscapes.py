@@ -242,7 +242,8 @@ def train(
     trainloader_iter,
     targetloader_iter,
     source_label,
-    target_label
+    target_label,
+    testloader
 ):
 
     model.train()
@@ -323,13 +324,10 @@ def train(
             trainloader_iter = enumerate(trainloader)
             targetloader_iter = enumerate(targetloader)
             
-        if epoch % args.checkpoint_step == 0 and epoch != 0:
-            if not os.path.isdir(args.save_model_path):
-                os.mkdir(args.save_model_path)
-                torch.save(
-                    model.module.state_dict(),
-                    os.path.join(args.save_model_path, "adversarial_latest.pth"),
-                )
+        if epoch % args.validation_step == 0 and epoch != 0:
+            val(model, testloader, args)
+            model.train()
+            model_D1.train()
 
 
 def val(model, dataloader, args):
@@ -495,6 +493,7 @@ def main():
         targetloader_iter,
         source_label,
         target_label,
+        testloader
     )
 
     val(model, testloader, args)
