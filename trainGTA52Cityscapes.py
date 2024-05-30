@@ -134,6 +134,9 @@ def parse_args():
         help="optimizer, support rmsprop, sgd, adam",
     )
     parse.add_argument("--loss", type=str, default="crossentropy", help="loss function")
+    parse.add_argument(
+        "--data_aug", type=str, default="False", help="apply data augmentation or not"
+    )
 
     return parse.parse_args()
 
@@ -368,6 +371,7 @@ def main():
     args = parse_args()
     experiment.log_parameters(vars(args))
     n_classes = args.num_classes
+    data_aug = bool(args.data_aug.lower() == "true")
 
     with open("./GTA5_info.json", "r") as fr:
         labels_info = json.load(fr)
@@ -379,7 +383,7 @@ def main():
 
     # Load test (source) dataset -> GTA5
     trainsource_dataset = GTA5(
-        "./GTA5", labels_info=labels_info, mode="train", apply_transform=False
+        "./GTA5", labels_info=labels_info, mode="train", apply_transform=data_aug
     )
 
     test_dataset = Cityscapes("./Cityscapes", mode="val")

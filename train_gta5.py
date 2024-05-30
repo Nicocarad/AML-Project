@@ -237,6 +237,7 @@ def parse_args():
         help="optimizer, support rmsprop, sgd, adam",
     )
     parse.add_argument("--loss", type=str, default="crossentropy", help="loss function")
+    parse.add_argument("--data_aug", type=str, default="False", help="apply data augmentation or not")
 
     return parse.parse_args()
 
@@ -248,6 +249,7 @@ def main():
     n_classes = args.num_classes
 
     mode = args.mode
+    data_aug = bool(args.data_aug.lower() == "true")
     root = "./GTA5"
 
     with open("./GTA5_info.json", "r") as fr:
@@ -263,7 +265,7 @@ def main():
         split_GTA5.main(root)
 
     train_dataset = GTA5(
-        root, labels_info=labels_info, mode="train", apply_transform=True
+        root, labels_info=labels_info, mode="train", apply_transform=data_aug
     )
 
     dataloader_train = DataLoader(
