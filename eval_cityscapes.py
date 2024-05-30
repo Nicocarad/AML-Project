@@ -16,7 +16,6 @@ from cityscapes import Cityscapes
 logger = logging.getLogger()
 
 
-# Crea un esperimento Comet.ml
 experiment = Experiment(api_key="knoxznRgLLK2INEJ9GIbmR7ww", project_name="AML_project")
 
 
@@ -51,12 +50,9 @@ def val(args, model, dataloader):
             # compute per pixel accuracy
             precision = compute_global_accuracy(predict, label)
             hist += fast_hist(label.flatten(), predict.flatten(), args.num_classes)
-            
+
             print("Hist", hist)
 
-            # there is no need to transform the one-hot array to visual RGB array
-            # predict = colour_code_segmentation(np.array(predict), label_info)
-            # label = colour_code_segmentation(np.array(label), label_info)
             precision_record.append(precision)
 
         precision = np.mean(precision_record)
@@ -215,7 +211,7 @@ def main():
 if __name__ == "__main__":
 
     output_file = "output_eval_cityscapes.txt"
-    
+
     with open(output_file, "w") as f:
 
         sys.stdout = f
