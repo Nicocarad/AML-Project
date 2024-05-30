@@ -62,6 +62,8 @@ def val(args, model, dataloader):
         print("precision per pixel for test: %.3f" % precision)
         print("mIoU for validation: %.3f" % miou)
         print(f"mIoU per class: {miou_list}")
+        experiment.log_metric("precision", precision)
+        experiment.log_metric("miou", miou)
 
         return precision, miou
 
