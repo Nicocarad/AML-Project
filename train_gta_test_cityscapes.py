@@ -2,9 +2,10 @@
 # -*- encoding: utf-8 -*-
 from comet_ml import Experiment
 from model.model_stages import BiSeNet
+from GTA5 import GTA5
 from cityscapes import Cityscapes
 import torch
-from torch.utils.data import DataLoader
+from torch.utils.data import Subset, DataLoader
 import logging
 import argparse
 import numpy as np
@@ -14,8 +15,13 @@ from utils import poly_lr_scheduler
 from utils import reverse_one_hot, compute_global_accuracy, fast_hist, per_class_iu
 from tqdm import tqdm
 import sys
+import os
+import split_GTA5
+import json
+
 
 logger = logging.getLogger()
+
 
 # Crea un esperimento Comet.ml
 experiment = Experiment(api_key="knoxznRgLLK2INEJ9GIbmR7ww", project_name="AML_project")
@@ -35,16 +41,16 @@ def val(args, model, dataloader):
 
             # get RGB predict image
             predict, _, _ = model(data)
+            print("Predict",predict)
+            print(predict.shape)
             predict = predict.squeeze(0)
-
-            # print("Predict", predict)
+            print("Predict after squeeze",predict)
             predict = reverse_one_hot(predict)
-            # print("Predict one hot", predict)
+            print("Predict after reverse_one_hot",predict)
             predict = np.array(predict.cpu())
 
             # get RGB label image
             label = label.squeeze()
-            # print("Label", label)
             label = np.array(label.cpu())
 
             # compute per pixel accuracy
@@ -62,11 +68,15 @@ def val(args, model, dataloader):
         print("precision per pixel for test: %.3f" % precision)
         print("mIoU for validation: %.3f" % miou)
         print(f"mIoU per class: {miou_list}")
+        experiment.log_metric("precision", precision)
+        experiment.log_metric("miou", miou)
 
         return precision, miou
 
 
 def train(args, model, optimizer, dataloader_train, dataloader_val):
+
+    print("start train!")
     writer = SummaryWriter(comment="".format(args.optimizer))
 
     scaler = amp.GradScaler()
@@ -130,6 +140,8 @@ def train(args, model, optimizer, dataloader_train, dataloader_val):
                 )
             writer.add_scalar("epoch/precision_val", precision, epoch)
             writer.add_scalar("epoch/miou val", miou, epoch)
+
+    experiment.log_metric("loss_train_mean", loss_train_mean)
 
 
 def str2bool(v):
@@ -237,15 +249,29 @@ def parse_args():
 
 def main():
     args = parse_args()
-
     experiment.log_parameters(vars(args))
-
     ## dataset
     n_classes = args.num_classes
 
     mode = args.mode
+    root = "./GTA5"
 
-    train_dataset = Cityscapes("./Cityscapes", mode="train")
+    with open("./GTA5_info.json", "r") as fr:
+        labels_info = json.load(fr)
+
+    # Check if the dataset is split in train and val
+    subdirectories = [
+        subdir
+        for subdir in os.listdir(root)
+        if os.path.isdir(os.path.join(root, subdir))
+    ]
+    if "train" not in subdirectories or "val" not in subdirectories:
+        split_GTA5.main(root)
+
+    train_dataset = GTA5(
+        root, labels_info=labels_info, mode="train", apply_transform=True
+    )
+
     dataloader_train = DataLoader(
         train_dataset,
         batch_size=args.batch_size,
@@ -274,6 +300,7 @@ def main():
 
     if torch.cuda.is_available() and args.use_gpu:
         model = torch.nn.DataParallel(model).cuda()
+        
 
     ## optimizer
     # build optimizer
@@ -298,7 +325,7 @@ def main():
 
 if __name__ == "__main__":
 
-    output_file = "output_cityscapes.txt"
+    output_file = "output_gta5.txt"
     with open(output_file, "w") as f:
 
         sys.stdout = f

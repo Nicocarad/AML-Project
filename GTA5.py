@@ -95,7 +95,7 @@ class GTA5(Dataset):
 
         if self.apply_transform == True and random.uniform(0, 1) > 0.5:
 
-                img, label = self.transform.Positionaltransform(img, label)
+                #img, label = self.transform.Positionaltransform(img, label)
                 img = self.transform.Colortransform(img)
 
         img = to_tensor(img)
