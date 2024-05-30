@@ -20,7 +20,6 @@ import torch.backends.cudnn as cudnn
 import json
 
 
-# Crea un esperimento Comet.ml
 experiment = Experiment(api_key="knoxznRgLLK2INEJ9GIbmR7ww", project_name="AML_project")
 
 
@@ -146,7 +145,6 @@ def train_discriminator(
     bce_loss,
     source_label,
     target_label,
-    cuda,
     scaler,
 ):
 
@@ -204,7 +202,6 @@ def train_on_target(
     bce_loss,
     source_label,
     scaler,
-    cuda,
     lambda_adv,
 ):
     _, batch = next(targetloader_iter)
@@ -243,13 +240,12 @@ def train(
     targetloader_iter,
     source_label,
     target_label,
-    testloader
+    testloader,
 ):
 
     model.train()
-    # model.cuda(args.cuda)
+
     model_D1.train()
-    # model_D1.cuda(args.cuda)
 
     scaler = amp.GradScaler()
 
@@ -268,8 +264,6 @@ def train(
             optimizer_D1, args.learning_rate_D, iter=epoch, max_iter=args.num_epochs
         )
 
-        # tq = tqdm(total=len(trainloader) * args.batch_size)
-        # tq.set_description("Current epoch %d, lr %f, lr_D %f" % (epoch, lr, lr_D))
         with tqdm(total=num_batches, desc=f"Epoca {epoch+1}", unit="batch") as pbar:
             for _ in range(num_batches):
 
@@ -294,7 +288,6 @@ def train(
                     bce_loss,
                     source_label,
                     scaler,
-                    args.cuda,
                     args.lambda_adv,
                 )
 
@@ -311,7 +304,6 @@ def train(
                     bce_loss,
                     source_label,
                     target_label,
-                    args.cuda,
                     scaler,
                 )
 
@@ -320,10 +312,10 @@ def train(
                 scaler.update()
 
                 pbar.update()
-                
+
             trainloader_iter = enumerate(trainloader)
             targetloader_iter = enumerate(targetloader)
-            
+
         if epoch % args.validation_step == 0 and epoch != 0:
             val(model, testloader, args)
             model.train()
@@ -373,7 +365,6 @@ def val(model, dataloader, args):
 
 def main():
 
-    print("Start running")
     args = parse_args()
     experiment.log_parameters(vars(args))
     n_classes = args.num_classes
@@ -393,7 +384,6 @@ def main():
 
     test_dataset = Cityscapes("./Cityscapes", mode="val")
 
-    print("Data loaded")
     # Reduce GTA5 dataset to the same size of Cityscapes dataset
     target_size = len(traintarget_dataset)
     train_subset = Subset(trainsource_dataset, indices=range(target_size))
@@ -473,9 +463,6 @@ def main():
 
     optimizer.zero_grad()
 
-    # interp = nn.Upsample(size=(input_size[1], input_size[0]), mode='bilinear')
-    # interp_target = nn.Upsample(size=(input_size_target[1], input_size_target[0]), mode='bilinear')
-
     # labels for adversarial training
     source_label = 0  # GTA5
     target_label = 1  # Cityscapes
@@ -493,7 +480,7 @@ def main():
         targetloader_iter,
         source_label,
         target_label,
-        testloader
+        testloader,
     )
 
     val(model, testloader, args)

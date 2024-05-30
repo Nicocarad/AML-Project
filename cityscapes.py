@@ -92,7 +92,6 @@ class Cityscapes(Dataset):
 
         img = to_tensor(img)
         label = np.array(label).astype(np.int64)[np.newaxis, :]
-        # label = convert_labels(self.lb_map,label)
 
         return img, label
 

@@ -21,8 +21,6 @@ import json
 
 logger = logging.getLogger()
 
-
-# Crea un esperimento Comet.ml
 experiment = Experiment(api_key="knoxznRgLLK2INEJ9GIbmR7ww", project_name="AML_project")
 
 
@@ -40,12 +38,12 @@ def val(args, model, dataloader):
 
             # get RGB predict image
             predict, _, _ = model(data)
-            print("Predict",predict)
+            print("Predict", predict)
             print(predict.shape)
             predict = predict.squeeze(0)
-            print("Predict after squeeze",predict)
+            print("Predict after squeeze", predict)
             predict = reverse_one_hot(predict)
-            print("Predict after reverse_one_hot",predict)
+            print("Predict after reverse_one_hot", predict)
             predict = np.array(predict.cpu())
 
             # get RGB label image
@@ -56,9 +54,6 @@ def val(args, model, dataloader):
             precision = compute_global_accuracy(predict, label)
             hist += fast_hist(label.flatten(), predict.flatten(), args.num_classes)
 
-            # there is no need to transform the one-hot array to visual RGB array
-            # predict = colour_code_segmentation(np.array(predict), label_info)
-            # label = colour_code_segmentation(np.array(label), label_info)
             precision_record.append(precision)
 
         precision = np.mean(precision_record)
@@ -172,7 +167,7 @@ def parse_args():
         "--pretrain_path",
         dest="pretrain_path",
         type=str,
-        default="./checkpoints/STDCNet813M_73.91.tar",  # Pretrained on ImageNet ---> incolla: /STDCNet813M_73.91.tar
+        default="./checkpoints/STDCNet813M_73.91.tar", 
     )
     parse.add_argument(
         "--use_conv_last",
@@ -299,7 +294,6 @@ def main():
 
     if torch.cuda.is_available() and args.use_gpu:
         model = torch.nn.DataParallel(model).cuda()
-        
 
     ## optimizer
     # build optimizer

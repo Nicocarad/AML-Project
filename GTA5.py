@@ -17,9 +17,6 @@ from data_augmentation import DataAugmentation
 import matplotlib.pyplot as plt
 
 
-# Creare un trasformatore personalizzato che applica la stessa trasformazione a entrambe l'immagine e l'etichetta
-
-
 def pil_loader(path):
     # open path as file to avoid ResourceWarning (https://github.com/python-pillow/Pillow/issues/835)
     with open(path, "rb") as f:
@@ -95,8 +92,8 @@ class GTA5(Dataset):
 
         if self.apply_transform == True and random.uniform(0, 1) > 0.5:
 
-                img, label = self.transform.Positionaltransform(img, label)
-                #img = self.transform.Colortransform(img)
+            img, label = self.transform.Positionaltransform(img, label)
+            # img = self.transform.Colortransform(img)
 
         img = to_tensor(img)
 
@@ -115,7 +112,6 @@ class GTA5(Dataset):
 if __name__ == "__main__":
     from tqdm import tqdm
 
-    # os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
     with open("./GTA5_info.json", "r") as fr:
         labels_info = json.load(fr)
     print("Load dataset")

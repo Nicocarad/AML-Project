@@ -4,8 +4,6 @@ import shutil
 from tqdm import tqdm
 
 
-
-
 def get_image_names(directory):
     return [f for f in os.listdir(directory) if f.endswith((".jpg", ".png"))]
 
@@ -28,17 +26,17 @@ def save_images_to_directory(images, source_directory, target_directory):
     ):
         shutil.copy(os.path.join(source_directory, image), target_directory)
 
+
 def main(root="GTA5/GTA5"):
-    
+
     random.seed(42)
     directory = "./GTA5/images"
     image_names = get_image_names(directory)
     shuffled_vector = shuffle_vector(image_names)
     vector1, vector2 = split_vector(shuffled_vector, 500)
-    
-    print("Length of vector1",len(vector1))
-    print("Length of vector2",len(vector2))
 
+    print("Length of vector1", len(vector1))
+    print("Length of vector2", len(vector2))
 
     save_images_to_directory(vector1, "./GTA5/images", "./GTA5/val/images")
     save_images_to_directory(vector2, "./GTA5/images", "./GTA5/train/images")
