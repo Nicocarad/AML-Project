@@ -18,6 +18,9 @@ from torch.autograd import Variable
 import os
 import torch.backends.cudnn as cudnn
 import json
+import random
+import numpy as np
+import torch
 
 
 experiment = Experiment(api_key="knoxznRgLLK2INEJ9GIbmR7ww", project_name="AML_project")
@@ -367,6 +370,17 @@ def val(model, dataloader, args):
 
 
 def main():
+    
+    seed = 42  # Scegli un seed fisso per la riproducibilità
+
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)  # Se stai utilizzando CUDA
+
+    torch.backends.cudnn.enabled = True
+    torch.backends.cudnn.deterministic = True  # Forza la modalità deterministica
+    torch.backends.cudnn.benchmark = False  # Imposta questo a False per evitare variazioni dovute all'ottimizzazione di cudnn
 
     args = parse_args()
     experiment.log_parameters(vars(args))
@@ -377,6 +391,9 @@ def main():
         labels_info = json.load(fr)
 
     cudnn.enabled = True
+    torch.backends.cudnn.enabled = True
+    torch.backends.cudnn.deterministic = True
+    
     print("Loading data...")
     # Load train (target) dataset -> Cityscapes
     traintarget_dataset = Cityscapes("./Cityscapes", mode="train")
