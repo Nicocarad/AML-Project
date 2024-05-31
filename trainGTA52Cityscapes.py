@@ -99,7 +99,7 @@ def parse_args():
     parse.add_argument(
         "--learning_rate",
         type=float,
-        default=0.01,
+        default=0.0001,
         help="learning rate used for train",
     )
     parse.add_argument(
@@ -394,7 +394,6 @@ def main():
 
     num_batches = len(train_subset) // args.batch_size
 
-    # Crea i DataLoader
     targetloader = DataLoader(
         traintarget_dataset,
         batch_size=args.batch_size,

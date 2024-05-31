@@ -176,7 +176,7 @@ def parse_args():
         default=False,
     )
     parse.add_argument(
-        "--num_epochs", type=int, default=5, help="Number of epochs to train for"
+        "--num_epochs", type=int, default=50, help="Number of epochs to train for"
     )
     parse.add_argument(
         "--epoch_start_i",
@@ -212,7 +212,7 @@ def parse_args():
         "--batch_size", type=int, default=8, help="Number of images in each batch"
     )
     parse.add_argument(
-        "--learning_rate", type=float, default=0.01, help="learning rate used for train"
+        "--learning_rate", type=float, default=0.0001, help="learning rate used for train"
     )
     parse.add_argument("--num_workers", type=int, default=2, help="num of workers")
     parse.add_argument(

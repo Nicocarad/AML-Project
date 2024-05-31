@@ -241,6 +241,7 @@ def main():
 
     mode = args.mode
     data_aug = bool(args.data_aug.lower() == "true")
+    print(data_aug)
     root = "./GTA5"
 
     with open("./GTA5_info.json", "r") as fr:

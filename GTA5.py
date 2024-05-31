@@ -51,7 +51,7 @@ def convert_labels(lb_map, label):
 
 
 class GTA5(Dataset):
-    def __init__(self, root, labels_info, mode, apply_transform=False):
+    def __init__(self, root, labels_info, mode, apply_transform):
         super(GTA5, self).__init__()
 
         assert mode in ("train", "val", "test")
@@ -60,7 +60,7 @@ class GTA5(Dataset):
         self.counter = 0
 
         if self.apply_transform == True:
-
+            print("Data Augmentation activated")
             self.transform = DataAugmentation()
 
         self.lb_map = np.zeros((256, 256, 256), dtype=np.int64)
@@ -93,7 +93,7 @@ class GTA5(Dataset):
         if self.apply_transform == True and random.uniform(0, 1) > 0.5:
 
             img, label = self.transform.Positionaltransform(img, label)
-            # img = self.transform.Colortransform(img)
+            img = self.transform.Colortransform(img)
 
         img = to_tensor(img)
 
