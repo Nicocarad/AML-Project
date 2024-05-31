@@ -394,8 +394,7 @@ def main():
         labels_info = json.load(fr)
 
     cudnn.enabled = True
-    torch.backends.cudnn.enabled = True
-    torch.backends.cudnn.deterministic = True
+
     
     print("Loading data...")
     # Load train (target) dataset -> Cityscapes
@@ -463,7 +462,6 @@ def main():
         model = torch.nn.DataParallel(model).cuda()
         model_D1 = torch.nn.DataParallel(model_D1).cuda()
 
-    cudnn.benchmark = True
 
     # Define optimizer for Discriminator function
     optimizer_D1 = optim.Adam(
