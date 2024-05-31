@@ -25,6 +25,18 @@ import torch
 
 experiment = Experiment(api_key="knoxznRgLLK2INEJ9GIbmR7ww", project_name="AML_project")
 
+def set_seed(seed):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+
+
+
+
 
 def str2bool(v):
     if v.lower() in ("yes", "true", "t", "y", "1"):
@@ -371,16 +383,7 @@ def val(model, dataloader, args):
 
 def main():
     
-    seed = 42  # Scegli un seed fisso per la riproducibilità
-
-    random.seed(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)  # Se stai utilizzando CUDA
-
-    torch.backends.cudnn.enabled = True
-    torch.backends.cudnn.deterministic = True  # Forza la modalità deterministica
-    torch.backends.cudnn.benchmark = False  # Imposta questo a False per evitare variazioni dovute all'ottimizzazione di cudnn
+    
 
     args = parse_args()
     experiment.log_parameters(vars(args))
@@ -510,6 +513,7 @@ def main():
 if __name__ == "__main__":
 
     output_file = "output_gta5_cityscapes_adversarial.txt"
+    set_seed(42)  # Scegli un seed fisso per la riproducibilità
     with open(output_file, "w") as f:
 
         sys.stdout = f

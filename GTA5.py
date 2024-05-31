@@ -55,6 +55,9 @@ class GTA5(Dataset):
         super(GTA5, self).__init__()
 
         assert mode in ("train", "val", "test")
+        seed =42
+        random.seed(seed)
+        np.random.seed(seed)
         self.mode = mode
         self.apply_transform = apply_transform
         self.counter = 0
@@ -94,6 +97,7 @@ class GTA5(Dataset):
 
             img, label = self.transform.Positionaltransform(img, label)
             img = self.transform.Colortransform(img)
+            
 
         img = to_tensor(img)
 

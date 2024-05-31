@@ -18,6 +18,7 @@ import sys
 import os
 import split_GTA5
 import json
+import random
 
 
 logger = logging.getLogger()
@@ -25,6 +26,19 @@ logger = logging.getLogger()
 
 # Crea un esperimento Comet.ml
 experiment = Experiment(api_key="knoxznRgLLK2INEJ9GIbmR7ww", project_name="AML_project")
+
+
+def set_seed(seed):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+
+
+
 
 
 def val(args, model, dataloader):
@@ -41,12 +55,12 @@ def val(args, model, dataloader):
 
             # get RGB predict image
             predict, _, _ = model(data)
-            print("Predict",predict)
+            print("Predict", predict)
             print(predict.shape)
             predict = predict.squeeze(0)
-            print("Predict after squeeze",predict)
+            print("Predict after squeeze", predict)
             predict = reverse_one_hot(predict)
-            print("Predict after reverse_one_hot",predict)
+            print("Predict after reverse_one_hot", predict)
             predict = np.array(predict.cpu())
 
             # get RGB label image
@@ -228,7 +242,9 @@ def parse_args():
         help="optimizer, support rmsprop, sgd, adam",
     )
     parse.add_argument("--loss", type=str, default="crossentropy", help="loss function")
-    parse.add_argument("--data_aug", type=str, default="False", help="apply data augmentation or not")
+    parse.add_argument(
+        "--data_aug", type=str, default="False", help="apply data augmentation or not"
+    )
 
     return parse.parse_args()
 
@@ -288,7 +304,6 @@ def main():
 
     if torch.cuda.is_available() and args.use_gpu:
         model = torch.nn.DataParallel(model).cuda()
-        
 
     ## optimizer
     # build optimizer
@@ -314,6 +329,7 @@ def main():
 if __name__ == "__main__":
 
     output_file = "output_gta5.txt"
+    set_seed(42)  # Scegli un seed fisso per la riproducibilità
     with open(output_file, "w") as f:
 
         sys.stdout = f

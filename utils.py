@@ -9,6 +9,18 @@ import numbers
 import torchvision
 
 
+def set_seed(seed):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+
+set_seed(42)  # Scegli un seed fisso per la riproducibilità
+
+
 def poly_lr_scheduler_D(
     optimizer, init_lr, iter, lr_decay_iter=1, max_iter=300, power=0.9
 ):
@@ -335,3 +347,5 @@ def group_weight(weight_group, module, norm_layer, lr):
     weight_group.append(dict(params=group_decay, lr=lr))
     weight_group.append(dict(params=group_no_decay, weight_decay=0.0, lr=lr))
     return weight_group
+
+

@@ -12,8 +12,6 @@ class DataAugmentation:
         # self.gs_t = transforms.Grayscale(3)
 
     def Positionaltransform(self, img, label):
-        random_value = random.uniform(-90, 90)
-        #img, label = img.rotate(random_value), label.rotate(random_value)
         img, label = self.hflip(img), self.hflip(label)
         return img, label
 
