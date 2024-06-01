@@ -6,10 +6,8 @@ class DataAugmentation:
     def __init__(self):
         self.hflip = transforms.functional.hflip
         self.color_jitter = transforms.ColorJitter(
-            brightness=[2, 3], contrast=[1, 3], saturation=[2, 3]
+            brightness=[2, 2], contrast=[2, 2], saturation=[2, 2]
         )
-        # self.hue_t = transforms.ColorJitter(hue=0.2)
-        # self.gs_t = transforms.Grayscale(3)
 
     def Positionaltransform(self, img, label):
         img, label = self.hflip(img), self.hflip(label)
@@ -17,6 +15,4 @@ class DataAugmentation:
 
     def Colortransform(self, image):
 
-        # image = self.hue_t(image)
-        # image = self.gs_t(image)
         return self.color_jitter(image)

@@ -25,6 +25,7 @@ import torch
 
 experiment = Experiment(api_key="knoxznRgLLK2INEJ9GIbmR7ww", project_name="AML_project")
 
+
 def set_seed(seed):
     random.seed(seed)
     np.random.seed(seed)
@@ -33,9 +34,6 @@ def set_seed(seed):
         torch.cuda.manual_seed_all(seed)
         torch.backends.cudnn.deterministic = True
         torch.backends.cudnn.benchmark = False
-
-
-
 
 
 def str2bool(v):
@@ -382,8 +380,6 @@ def val(model, dataloader, args):
 
 
 def main():
-    
-    
 
     args = parse_args()
     experiment.log_parameters(vars(args))
@@ -395,7 +391,6 @@ def main():
 
     cudnn.enabled = True
 
-    
     print("Loading data...")
     # Load train (target) dataset -> Cityscapes
     traintarget_dataset = Cityscapes("./Cityscapes", mode="train")
@@ -461,7 +456,6 @@ def main():
     if torch.cuda.is_available() and args.use_gpu:
         model = torch.nn.DataParallel(model).cuda()
         model_D1 = torch.nn.DataParallel(model_D1).cuda()
-
 
     # Define optimizer for Discriminator function
     optimizer_D1 = optim.Adam(
