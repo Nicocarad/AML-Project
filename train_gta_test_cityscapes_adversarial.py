@@ -7,8 +7,13 @@ from torch.utils.data import DataLoader, Subset
 import argparse
 import numpy as np
 import torch.cuda.amp as amp
-from utils import poly_lr_scheduler, poly_lr_scheduler_D
-from utils import reverse_one_hot, compute_global_accuracy, fast_hist, per_class_iu
+from Utils.utils import poly_lr_scheduler, poly_lr_scheduler_D
+from Utils.utils import (
+    reverse_one_hot,
+    compute_global_accuracy,
+    fast_hist,
+    per_class_iu,
+)
 from tqdm import tqdm
 import sys
 from model.discriminator import FCDiscriminator
@@ -23,7 +28,7 @@ import numpy as np
 import torch
 
 
-experiment = Experiment(api_key="knoxznRgLLK2INEJ9GIbmR7ww", project_name="AML_project")
+experiment = Experiment(api_key="your-api-key", project_name="AML_project")
 
 
 def set_seed(seed):
@@ -386,7 +391,7 @@ def main():
     n_classes = args.num_classes
     data_aug = bool(args.data_aug.lower() == "true")
 
-    with open("./GTA5_info.json", "r") as fr:
+    with open("./Datasets/GTA5_info.json", "r") as fr:
         labels_info = json.load(fr)
 
     cudnn.enabled = True

@@ -18,7 +18,8 @@ def set_seed(seed):
         torch.backends.cudnn.deterministic = True
         torch.backends.cudnn.benchmark = False
 
-set_seed(42)  # Scegli un seed fisso per la riproducibilità
+
+set_seed(42)
 
 
 def poly_lr_scheduler_D(
@@ -347,5 +348,3 @@ def group_weight(weight_group, module, norm_layer, lr):
     weight_group.append(dict(params=group_decay, lr=lr))
     weight_group.append(dict(params=group_no_decay, weight_decay=0.0, lr=lr))
     return weight_group
-
-

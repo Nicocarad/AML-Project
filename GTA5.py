@@ -3,18 +3,15 @@
 from torch.utils.data import Dataset
 from PIL import Image
 import os.path as osp
-import os
 from PIL import Image
 import numpy as np
 import json
 import glob
 from torchvision import transforms
-import os
 from torchvision import transforms
 import numpy as np
 import random
-from data_augmentation import DataAugmentation
-import matplotlib.pyplot as plt
+from Utils.data_augmentation import DataAugmentation
 
 
 def pil_loader(path):
@@ -55,7 +52,7 @@ class GTA5(Dataset):
         super(GTA5, self).__init__()
 
         assert mode in ("train", "val", "test")
-        seed =42
+        seed = 42
         random.seed(seed)
         np.random.seed(seed)
         self.mode = mode
@@ -97,7 +94,6 @@ class GTA5(Dataset):
 
             img, label = self.transform.Positionaltransform(img, label)
             img = self.transform.Colortransform(img)
-            
 
         img = to_tensor(img)
 

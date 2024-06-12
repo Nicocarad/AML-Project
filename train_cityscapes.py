@@ -10,14 +10,19 @@ import argparse
 import numpy as np
 from tensorboardX import SummaryWriter
 import torch.cuda.amp as amp
-from utils import poly_lr_scheduler
-from utils import reverse_one_hot, compute_global_accuracy, fast_hist, per_class_iu
+from Utils.utils import poly_lr_scheduler
+from Utils.utils import (
+    reverse_one_hot,
+    compute_global_accuracy,
+    fast_hist,
+    per_class_iu,
+)
 from tqdm import tqdm
 import sys
 
 logger = logging.getLogger()
 
-experiment = Experiment(api_key="knoxznRgLLK2INEJ9GIbmR7ww", project_name="AML_project")
+experiment = Experiment(api_key="your-api-key", project_name="AML_project")
 
 
 def val(args, model, dataloader):
@@ -240,7 +245,6 @@ def main():
 
     ## dataset
     n_classes = args.num_classes
-
 
     train_dataset = Cityscapes("./Cityscapes", mode="train")
     dataloader_train = DataLoader(

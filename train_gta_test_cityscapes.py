@@ -11,12 +11,17 @@ import argparse
 import numpy as np
 from tensorboardX import SummaryWriter
 import torch.cuda.amp as amp
-from utils import poly_lr_scheduler
-from utils import reverse_one_hot, compute_global_accuracy, fast_hist, per_class_iu
+from Utils.utils import poly_lr_scheduler
+from Utils.utils import (
+    reverse_one_hot,
+    compute_global_accuracy,
+    fast_hist,
+    per_class_iu,
+)
 from tqdm import tqdm
 import sys
 import os
-import split_GTA5
+import Utils.split_GTA5 as split_GTA5
 import json
 import random
 
@@ -25,7 +30,7 @@ logger = logging.getLogger()
 
 
 # Crea un esperimento Comet.ml
-experiment = Experiment(api_key="knoxznRgLLK2INEJ9GIbmR7ww", project_name="AML_project")
+experiment = Experiment(api_key="your-api-key", project_name="AML_project")
 
 
 def set_seed(seed):
@@ -36,9 +41,6 @@ def set_seed(seed):
         torch.cuda.manual_seed_all(seed)
         torch.backends.cudnn.deterministic = True
         torch.backends.cudnn.benchmark = False
-
-
-
 
 
 def val(args, model, dataloader):
@@ -255,12 +257,11 @@ def main():
     ## dataset
     n_classes = args.num_classes
 
-    mode = args.mode
     data_aug = bool(args.data_aug.lower() == "true")
     print(data_aug)
     root = "./GTA5"
 
-    with open("./GTA5_info.json", "r") as fr:
+    with open("./Datasets/GTA5_info.json", "r") as fr:
         labels_info = json.load(fr)
 
     # Check if the dataset is split in train and val

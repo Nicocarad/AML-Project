@@ -1,5 +1,4 @@
 from torchvision import transforms
-import random
 
 
 class DataAugmentation:

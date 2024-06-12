@@ -50,7 +50,7 @@ class Cityscapes(Dataset):
         self.mode = mode
         print("self.mode", self.mode)
 
-        with open("./cityscapes_info.json", "r") as fr:
+        with open("./Datasets/cityscapes_info.json", "r") as fr:
             labels_info = json.load(fr)
         self.lb_map = {el["id"]: el["trainId"] for el in labels_info}
 

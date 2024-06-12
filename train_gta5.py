@@ -10,18 +10,23 @@ import argparse
 import numpy as np
 from tensorboardX import SummaryWriter
 import torch.cuda.amp as amp
-from utils import poly_lr_scheduler
-from utils import reverse_one_hot, compute_global_accuracy, fast_hist, per_class_iu
+from Utils.utils import poly_lr_scheduler
+from Utils.utils import (
+    reverse_one_hot,
+    compute_global_accuracy,
+    fast_hist,
+    per_class_iu,
+)
 from tqdm import tqdm
 import sys
 import os
-import split_GTA5
+import Utils.split_GTA5 as split_GTA5
 import json
 
 
 logger = logging.getLogger()
 
-experiment = Experiment(api_key="knoxznRgLLK2INEJ9GIbmR7ww", project_name="AML_project")
+experiment = Experiment(api_key="your-api-key", project_name="AML_project")
 
 
 def val(args, model, dataloader):
@@ -167,7 +172,7 @@ def parse_args():
         "--pretrain_path",
         dest="pretrain_path",
         type=str,
-        default="./checkpoints/STDCNet813M_73.91.tar", 
+        default="./checkpoints/STDCNet813M_73.91.tar",
     )
     parse.add_argument(
         "--use_conv_last",
@@ -212,7 +217,10 @@ def parse_args():
         "--batch_size", type=int, default=8, help="Number of images in each batch"
     )
     parse.add_argument(
-        "--learning_rate", type=float, default=0.0001, help="learning rate used for train"
+        "--learning_rate",
+        type=float,
+        default=0.0001,
+        help="learning rate used for train",
     )
     parse.add_argument("--num_workers", type=int, default=2, help="num of workers")
     parse.add_argument(
@@ -237,7 +245,9 @@ def parse_args():
         help="optimizer, support rmsprop, sgd, adam",
     )
     parse.add_argument("--loss", type=str, default="crossentropy", help="loss function")
-    parse.add_argument("--data_aug", type=str, default="False", help="apply data augmentation or not")
+    parse.add_argument(
+        "--data_aug", type=str, default="False", help="apply data augmentation or not"
+    )
 
     return parse.parse_args()
 
@@ -248,11 +258,10 @@ def main():
     ## dataset
     n_classes = args.num_classes
 
-    mode = args.mode
     data_aug = bool(args.data_aug.lower() == "true")
     root = "./GTA5"
 
-    with open("./GTA5_info.json", "r") as fr:
+    with open("./Datasets/GTA5_info.json", "r") as fr:
         labels_info = json.load(fr)
 
     # Check if the dataset is split in train and val

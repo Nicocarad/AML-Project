@@ -15,12 +15,21 @@ def set_seed(seed):
         torch.backends.cudnn.deterministic = True
         torch.backends.cudnn.benchmark = False
 
-set_seed(42)  # Scegli un seed fisso per la riproducibilità
+
+set_seed(42)
+
 
 class ConvX(nn.Module):
     def __init__(self, in_planes, out_planes, kernel=3, stride=1):
         super(ConvX, self).__init__()
-        self.conv = nn.Conv2d(in_planes, out_planes, kernel_size=kernel, stride=stride, padding=kernel // 2, bias=False)
+        self.conv = nn.Conv2d(
+            in_planes,
+            out_planes,
+            kernel_size=kernel,
+            stride=stride,
+            padding=kernel // 2,
+            bias=False,
+        )
         self.bn = nn.BatchNorm2d(out_planes)
         self.relu = nn.ReLU(inplace=True)
 
@@ -37,12 +46,27 @@ class AddBottleneck(nn.Module):
         self.stride = stride
         if stride == 2:
             self.avd_layer = nn.Sequential(
-                nn.Conv2d(out_planes // 2, out_planes // 2, kernel_size=3, stride=2, padding=1, groups=out_planes // 2,
-                          bias=False),
+                nn.Conv2d(
+                    out_planes // 2,
+                    out_planes // 2,
+                    kernel_size=3,
+                    stride=2,
+                    padding=1,
+                    groups=out_planes // 2,
+                    bias=False,
+                ),
                 nn.BatchNorm2d(out_planes // 2),
             )
             self.skip = nn.Sequential(
-                nn.Conv2d(in_planes, in_planes, kernel_size=3, stride=2, padding=1, groups=in_planes, bias=False),
+                nn.Conv2d(
+                    in_planes,
+                    in_planes,
+                    kernel_size=3,
+                    stride=2,
+                    padding=1,
+                    groups=in_planes,
+                    bias=False,
+                ),
                 nn.BatchNorm2d(in_planes),
                 nn.Conv2d(in_planes, out_planes, kernel_size=1, bias=False),
                 nn.BatchNorm2d(out_planes),
@@ -53,14 +77,27 @@ class AddBottleneck(nn.Module):
             if idx == 0:
                 self.conv_list.append(ConvX(in_planes, out_planes // 2, kernel=1))
             elif idx == 1 and block_num == 2:
-                self.conv_list.append(ConvX(out_planes // 2, out_planes // 2, stride=stride))
+                self.conv_list.append(
+                    ConvX(out_planes // 2, out_planes // 2, stride=stride)
+                )
             elif idx == 1 and block_num > 2:
-                self.conv_list.append(ConvX(out_planes // 2, out_planes // 4, stride=stride))
+                self.conv_list.append(
+                    ConvX(out_planes // 2, out_planes // 4, stride=stride)
+                )
             elif idx < block_num - 1:
                 self.conv_list.append(
-                    ConvX(out_planes // int(math.pow(2, idx)), out_planes // int(math.pow(2, idx + 1))))
+                    ConvX(
+                        out_planes // int(math.pow(2, idx)),
+                        out_planes // int(math.pow(2, idx + 1)),
+                    )
+                )
             else:
-                self.conv_list.append(ConvX(out_planes // int(math.pow(2, idx)), out_planes // int(math.pow(2, idx))))
+                self.conv_list.append(
+                    ConvX(
+                        out_planes // int(math.pow(2, idx)),
+                        out_planes // int(math.pow(2, idx)),
+                    )
+                )
 
     def forward(self, x):
         out_list = []
@@ -87,8 +124,15 @@ class CatBottleneck(nn.Module):
         self.stride = stride
         if stride == 2:
             self.avd_layer = nn.Sequential(
-                nn.Conv2d(out_planes // 2, out_planes // 2, kernel_size=3, stride=2, padding=1, groups=out_planes // 2,
-                          bias=False),
+                nn.Conv2d(
+                    out_planes // 2,
+                    out_planes // 2,
+                    kernel_size=3,
+                    stride=2,
+                    padding=1,
+                    groups=out_planes // 2,
+                    bias=False,
+                ),
                 nn.BatchNorm2d(out_planes // 2),
             )
             self.skip = nn.AvgPool2d(kernel_size=3, stride=2, padding=1)
@@ -98,14 +142,27 @@ class CatBottleneck(nn.Module):
             if idx == 0:
                 self.conv_list.append(ConvX(in_planes, out_planes // 2, kernel=1))
             elif idx == 1 and block_num == 2:
-                self.conv_list.append(ConvX(out_planes // 2, out_planes // 2, stride=stride))
+                self.conv_list.append(
+                    ConvX(out_planes // 2, out_planes // 2, stride=stride)
+                )
             elif idx == 1 and block_num > 2:
-                self.conv_list.append(ConvX(out_planes // 2, out_planes // 4, stride=stride))
+                self.conv_list.append(
+                    ConvX(out_planes // 2, out_planes // 4, stride=stride)
+                )
             elif idx < block_num - 1:
                 self.conv_list.append(
-                    ConvX(out_planes // int(math.pow(2, idx)), out_planes // int(math.pow(2, idx + 1))))
+                    ConvX(
+                        out_planes // int(math.pow(2, idx)),
+                        out_planes // int(math.pow(2, idx + 1)),
+                    )
+                )
             else:
-                self.conv_list.append(ConvX(out_planes // int(math.pow(2, idx)), out_planes // int(math.pow(2, idx))))
+                self.conv_list.append(
+                    ConvX(
+                        out_planes // int(math.pow(2, idx)),
+                        out_planes // int(math.pow(2, idx)),
+                    )
+                )
 
     def forward(self, x):
         out_list = []
@@ -131,8 +188,17 @@ class CatBottleneck(nn.Module):
 
 # STDC1Net
 class STDCNet813(nn.Module):
-    def __init__(self, base=64, layers=[2, 2, 2], block_num=4, type="cat", num_classes=1000, dropout=0.20,
-                 pretrain_model='', use_conv_last=False):
+    def __init__(
+        self,
+        base=64,
+        layers=[2, 2, 2],
+        block_num=4,
+        type="cat",
+        num_classes=1000,
+        dropout=0.20,
+        pretrain_model="",
+        use_conv_last=False,
+    ):
         super(STDCNet813, self).__init__()
         if type == "cat":
             block = CatBottleneck
@@ -155,7 +221,7 @@ class STDCNet813(nn.Module):
         self.x32 = nn.Sequential(self.features[6:])
 
         if pretrain_model:
-            print('use pretrain model {}'.format(pretrain_model))
+            print("use pretrain model {}".format(pretrain_model))
             self.init_weight(pretrain_model)
         else:
             self.init_params()
@@ -171,7 +237,7 @@ class STDCNet813(nn.Module):
     def init_params(self):
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
-                init.kaiming_normal_(m.weight, mode='fan_out')
+                init.kaiming_normal_(m.weight, mode="fan_out")
                 if m.bias is not None:
                     init.constant_(m.bias, 0)
             elif isinstance(m, nn.BatchNorm2d):
@@ -192,9 +258,23 @@ class STDCNet813(nn.Module):
                 if i == 0 and j == 0:
                     features.append(block(base, base * 4, block_num, 2))
                 elif j == 0:
-                    features.append(block(base * int(math.pow(2, i + 1)), base * int(math.pow(2, i + 2)), block_num, 2))
+                    features.append(
+                        block(
+                            base * int(math.pow(2, i + 1)),
+                            base * int(math.pow(2, i + 2)),
+                            block_num,
+                            2,
+                        )
+                    )
                 else:
-                    features.append(block(base * int(math.pow(2, i + 2)), base * int(math.pow(2, i + 2)), block_num, 1))
+                    features.append(
+                        block(
+                            base * int(math.pow(2, i + 2)),
+                            base * int(math.pow(2, i + 2)),
+                            block_num,
+                            1,
+                        )
+                    )
 
         return nn.Sequential(*features)
 
