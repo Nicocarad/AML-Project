@@ -2,8 +2,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch
 import numpy as np
-
-
 import random
 
 
@@ -17,7 +15,7 @@ def set_seed(seed):
         torch.backends.cudnn.benchmark = False
 
 
-set_seed(42) 
+set_seed(42)
 
 
 class FCDiscriminator(nn.Module):
