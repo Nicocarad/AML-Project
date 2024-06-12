@@ -70,7 +70,7 @@ def parse_args():
         "--pretrain_path",
         dest="pretrain_path",
         type=str,
-        default="./checkpoints/STDCNet813M_73.91.tar",  # Pretrained on ImageNet ---> incolla: /STDCNet813M_73.91.tar
+        default="./checkpoints/STDCNet813M_73.91.tar",  
     )
     parse.add_argument(
         "--use_conv_last",
@@ -510,7 +510,7 @@ def main():
 if __name__ == "__main__":
 
     output_file = "output_gta5_cityscapes_adversarial.txt"
-    set_seed(42)  # Scegli un seed fisso per la riproducibilità
+    set_seed(42)  
     with open(output_file, "w") as f:
 
         sys.stdout = f
